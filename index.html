@@ -1,0 +1,403 @@
+<!doctype html>
+<!-- Cycle — private period tracker. Author: Vishal Gangaram -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="author" content="Vishal Gangaram">
+  <meta name="description" content="A private period and cycle tracker. All data stays on your device.">
+  <meta name="theme-color" content="#F7F3EE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1B1726" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cycle">
+  <meta name="format-detection" content="telephone=no">
+  <title>Cycle</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Covers the app when it is in the background (hides data in the app switcher) -->
+  <div id="privacy-cover" class="privacy-cover" hidden></div>
+
+  <!-- PIN lock -->
+  <div id="lock" class="lock" hidden role="dialog" aria-modal="true" aria-labelledby="lock-title">
+    <div class="lock-inner">
+      <div class="lock-logo" aria-hidden="true"></div>
+      <h1 id="lock-title" class="lock-title">Enter PIN</h1>
+      <p id="lock-msg" class="lock-msg" aria-live="polite">Your data is locked on this device.</p>
+      <div class="pin-dots" id="pin-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="keypad" id="keypad">
+        <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+        <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+        <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+        <span></span><button type="button" data-key="0">0</button>
+        <button type="button" data-key="del" aria-label="Delete digit" class="key-del">
+          <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m12 9 6 6m0-6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <button type="button" id="forgot-pin" class="link-btn">Forgot PIN?</button>
+    </div>
+  </div>
+
+  <main id="app" class="app">
+    <!-- TODAY -->
+    <section id="view-today" class="view" aria-labelledby="today-title">
+      <header class="top">
+        <div>
+          <p class="eyebrow" id="today-date"></p>
+          <h1 id="today-title" class="title">Today</h1>
+        </div>
+        <button type="button" class="icon-btn" id="today-log-btn" aria-label="Log today">
+          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <div class="hero card" id="hero">
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="ring-track" cx="100" cy="100" r="86"/>
+            <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="86" stroke-dasharray="0 541"/>
+          </svg>
+          <div class="ring-center">
+            <span class="ring-label" id="ring-label">Cycle day</span>
+            <span class="ring-big" id="ring-big">–</span>
+            <span class="ring-sub" id="ring-sub"></span>
+          </div>
+        </div>
+        <span class="phase-pill" id="phase-pill" data-phase="none">No data yet</span>
+        <p class="headline" id="headline">Log your period to get started.</p>
+        <p class="blurb" id="blurb"></p>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-primary btn-lg" id="period-btn">Period started</button>
+          <button type="button" class="btn btn-soft btn-lg" id="period-end-btn" hidden>Period ended today</button>
+        </div>
+      </div>
+
+      <div class="stat-row" id="stat-row" hidden>
+        <div class="stat card tint-rose">
+          <span class="stat-k">Next period</span>
+          <span class="stat-v" id="stat-next">–</span>
+        </div>
+        <div class="stat card tint-teal">
+          <span class="stat-k">Fertile window</span>
+          <span class="stat-v" id="stat-fertile">–</span>
+        </div>
+        <div class="stat card tint-lav">
+          <span class="stat-k">Ovulation</span>
+          <span class="stat-v" id="stat-ovulation">–</span>
+        </div>
+      </div>
+
+      <button type="button" class="card today-log" id="today-log-card">
+        <span class="today-log-k">Today’s log</span>
+        <span class="today-log-v" id="today-log-summary">Nothing logged yet — tap to add flow, symptoms or mood.</span>
+      </button>
+
+      <p class="disclaimer" id="defaults-note" hidden></p>
+      <p class="disclaimer"><strong>Estimates only.</strong> Predictions are based on your past cycles and are not medical advice. Do not use this app as contraception or to plan pregnancy.</p>
+    </section>
+
+    <!-- CALENDAR -->
+    <section id="view-calendar" class="view" hidden aria-labelledby="cal-title">
+      <header class="top">
+        <div>
+          <p class="eyebrow">Calendar</p>
+          <h1 id="cal-title" class="title">Month</h1>
+        </div>
+        <div class="cal-nav">
+          <button type="button" class="icon-btn" id="cal-prev" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="m15 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="cal-next" aria-label="Next month">
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </header>
+      <div class="card cal-card">
+        <div class="cal-weekdays" aria-hidden="true">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+        <div class="cal-grid" id="cal-grid" role="grid"></div>
+      </div>
+      <button type="button" class="btn btn-soft btn-block" id="cal-today">Go to today</button>
+      <ul class="legend" aria-label="Legend">
+        <li><span class="sw sw-period"></span>Period</li>
+        <li><span class="sw sw-predicted"></span>Predicted period</li>
+        <li><span class="sw sw-fertile"></span>Fertile window</li>
+        <li><span class="sw sw-ovulation"></span>Ovulation (est.)</li>
+        <li><span class="sw sw-spotting"></span>Spotting</li>
+        <li><span class="sw sw-note"></span>Symptoms / notes</li>
+      </ul>
+      <p class="disclaimer">Tap any day to log. Predicted days are estimates, not medical advice or contraception.</p>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="view-history" class="view" hidden aria-labelledby="hist-title">
+      <header class="top">
+        <div>
+          <p class="eyebrow">History</p>
+          <h1 id="hist-title" class="title">Your cycles</h1>
+        </div>
+      </header>
+      <div class="stat-row">
+        <div class="stat card tint-rose">
+          <span class="stat-k">Avg. cycle</span>
+          <span class="stat-v" id="avg-cycle">–</span>
+        </div>
+        <div class="stat card tint-lav">
+          <span class="stat-k">Avg. period</span>
+          <span class="stat-v" id="avg-period">–</span>
+        </div>
+        <div class="stat card tint-teal">
+          <span class="stat-k">Cycles logged</span>
+          <span class="stat-v" id="cycles-count">0</span>
+        </div>
+      </div>
+      <p class="disclaimer" id="avg-note"></p>
+      <ol class="history-list" id="history-list"></ol>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" hidden aria-labelledby="set-title">
+      <header class="top">
+        <div>
+          <p class="eyebrow">Settings</p>
+          <h1 id="set-title" class="title">Your app</h1>
+        </div>
+      </header>
+
+      <h2 class="section-h">Cycle defaults</h2>
+      <div class="card list">
+        <div class="row">
+          <div class="row-text"><span class="row-k">Cycle length</span><span class="row-sub">Used until 2 cycles are logged</span></div>
+          <div class="stepper" data-setting="cycleLength" data-min="15" data-max="60">
+            <button type="button" data-step="-1" aria-label="Decrease cycle length">−</button>
+            <output id="set-cycle">28</output>
+            <button type="button" data-step="1" aria-label="Increase cycle length">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="row-text"><span class="row-k">Period length</span><span class="row-sub">Pre-fills “Period started”</span></div>
+          <div class="stepper" data-setting="periodLength" data-min="1" data-max="15">
+            <button type="button" data-step="-1" aria-label="Decrease period length">−</button>
+            <output id="set-period">5</output>
+            <button type="button" data-step="1" aria-label="Increase period length">+</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-h">Privacy &amp; lock</h2>
+      <div class="card list">
+        <div class="row">
+          <div class="row-text"><span class="row-k">PIN lock</span><span class="row-sub" id="pin-status">Off</span></div>
+          <button type="button" class="btn btn-soft" id="pin-set-btn">Set PIN</button>
+        </div>
+        <div class="row" id="pin-remove-row" hidden>
+          <div class="row-text"><span class="row-k">Remove PIN</span><span class="row-sub">Open the app without a PIN</span></div>
+          <button type="button" class="btn btn-soft" id="pin-remove-btn">Remove</button>
+        </div>
+      </div>
+
+      <h2 class="section-h">Backup</h2>
+      <div class="card list">
+        <div class="row">
+          <div class="row-text"><span class="row-k">Export data</span><span class="row-sub">Save a .json backup file</span></div>
+          <button type="button" class="btn btn-soft" id="export-btn">Export</button>
+        </div>
+        <div class="row">
+          <div class="row-text"><span class="row-k">Import data</span><span class="row-sub">Restore from a backup file</span></div>
+          <label class="btn btn-soft file-btn">Import<input type="file" id="import-file" accept="application/json,.json"></label>
+        </div>
+      </div>
+
+      <h2 class="section-h">Danger zone</h2>
+      <div class="card list">
+        <div class="row">
+          <div class="row-text"><span class="row-k">Delete all data</span><span class="row-sub">Erase every entry, setting and PIN</span></div>
+          <button type="button" class="btn btn-danger" id="delete-all-btn">Delete</button>
+        </div>
+      </div>
+
+      <div class="card about">
+        <h2 class="about-h">Private by design</h2>
+        <p>No account, no server, no analytics. Your entries are stored only on this device (<span id="storage-kind">…</span>) and the app is technically blocked from sending data anywhere. Export a backup regularly — if you delete the app or clear browser data, your entries are gone.</p>
+        <p><strong>Not medical advice.</strong> Predictions are estimates based on averages. They are not suitable for contraception or diagnosis. Talk to a clinician about anything that worries you.</p>
+        <p class="version">Cycle v1.0.0</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button type="button" class="tab" data-view="today" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3 3.6 6 7.1 6 10.4a6 6 0 0 1-12 0c0-3.3 3-6.8 6-10.4Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+      <span>Today</span>
+    </button>
+    <button type="button" class="tab" data-view="calendar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button type="button" class="tab" data-view="history">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M21 19H3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      <span>History</span>
+    </button>
+    <button type="button" class="tab" data-view="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- Daily log sheet -->
+  <dialog id="log-sheet" class="sheet" aria-labelledby="log-title">
+    <form method="dialog" id="log-form" class="sheet-inner">
+      <div class="grabber" aria-hidden="true"></div>
+      <header class="sheet-head">
+        <div>
+          <p class="eyebrow" id="log-eyebrow">Daily log</p>
+          <h2 id="log-title" class="sheet-title">Today</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+
+      <fieldset class="group">
+        <legend>Flow</legend>
+        <div class="seg" id="flow-seg" role="radiogroup" aria-label="Flow"></div>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Symptoms</legend>
+        <div class="chips" id="symptom-chips"></div>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Mood</legend>
+        <div class="chips" id="mood-chips" role="radiogroup" aria-label="Mood"></div>
+      </fieldset>
+      <label class="group">
+        <span class="field-label">Note</span>
+        <textarea id="log-note" rows="3" maxlength="1000" placeholder="Anything else to remember…"></textarea>
+      </label>
+
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-ghost" id="log-clear">Clear day</button>
+        <button type="submit" class="btn btn-primary btn-lg" id="log-save" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Period started sheet -->
+  <dialog id="period-sheet" class="sheet" aria-labelledby="period-title">
+    <form method="dialog" id="period-form" class="sheet-inner">
+      <div class="grabber" aria-hidden="true"></div>
+      <header class="sheet-head">
+        <div>
+          <p class="eyebrow">Quick log</p>
+          <h2 id="period-title" class="sheet-title">Period started</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <label class="group">
+        <span class="field-label">First day</span>
+        <input type="date" id="period-start" required>
+      </label>
+      <div class="group">
+        <span class="field-label">Expected length</span>
+        <div class="row row-flat">
+          <div class="row-text"><span class="row-sub" id="period-len-note">Your typical period length</span></div>
+          <div class="stepper" id="period-len-stepper" data-min="1" data-max="15">
+            <button type="button" data-step="-1" aria-label="Fewer days">−</button>
+            <output id="period-len">5</output>
+            <button type="button" data-step="1" aria-label="More days">+</button>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Days are filled with medium flow. You can adjust any day later in the calendar, or tap “Period ended today” when it stops early.</p>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary btn-lg" value="save">Log period</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Set PIN -->
+  <dialog id="pin-sheet" class="sheet" aria-labelledby="pin-title">
+    <form method="dialog" id="pin-form" class="sheet-inner">
+      <div class="grabber" aria-hidden="true"></div>
+      <header class="sheet-head">
+        <div>
+          <p class="eyebrow">Privacy</p>
+          <h2 id="pin-title" class="sheet-title">Set a 4-digit PIN</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </header>
+      <label class="group">
+        <span class="field-label">New PIN</span>
+        <input type="password" id="pin-new" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required>
+      </label>
+      <label class="group">
+        <span class="field-label">Repeat PIN</span>
+        <input type="password" id="pin-repeat" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required>
+      </label>
+      <p class="hint" id="pin-error" aria-live="polite">Only a salted SHA-256 hash is stored, never the PIN itself. If you forget it, the only way back in is to delete all data — keep a backup.</p>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary btn-lg" value="save">Save PIN</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Import choice -->
+  <dialog id="import-sheet" class="sheet" aria-labelledby="import-title">
+    <form method="dialog" class="sheet-inner">
+      <div class="grabber" aria-hidden="true"></div>
+      <header class="sheet-head">
+        <div>
+          <p class="eyebrow">Backup</p>
+          <h2 id="import-title" class="sheet-title">Import data</h2>
+        </div>
+      </header>
+      <p class="hint" id="import-summary"></p>
+      <div class="choice-list">
+        <button type="submit" class="choice" value="merge">
+          <span class="choice-k">Merge</span>
+          <span class="choice-sub">Add the backup to what’s here. If a day exists in both, the most recently edited version is kept.</span>
+        </button>
+        <button type="submit" class="choice" value="replace">
+          <span class="choice-k">Replace</span>
+          <span class="choice-sub">Delete everything on this device and use the backup instead.</span>
+        </button>
+      </div>
+      <div class="sheet-actions">
+        <button type="submit" class="btn btn-ghost btn-block" value="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Generic confirm -->
+  <dialog id="confirm" class="alert" aria-labelledby="confirm-title">
+    <form method="dialog" class="alert-inner">
+      <h2 id="confirm-title" class="alert-title">Are you sure?</h2>
+      <p id="confirm-text" class="alert-text"></p>
+      <div class="alert-actions">
+        <button type="submit" class="btn btn-ghost" value="cancel">Cancel</button>
+        <button type="submit" class="btn btn-danger" value="ok" id="confirm-ok">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
