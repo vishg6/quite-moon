@@ -13,8 +13,9 @@ no server and no analytics.
 - **The browser enforces this.** A strict Content-Security-Policy
   (`default-src 'self'; connect-src 'self'`, no external origins) blocks any
   request to another site, even one added by mistake.
-- **Nothing third-party.** No CDNs, web fonts, trackers or external scripts. The
-  app uses your phone's own system font.
+- **Nothing third-party.** No CDNs, trackers or external scripts. The two
+  typefaces (Plus Jakarta Sans and Inter, SIL Open Font License) are bundled in
+  `fonts/` and served by the app itself, so no font request ever leaves your phone.
 - **Optional 4-digit PIN.** Only a salted SHA-256 hash is stored, never the PIN.
   A 4-digit PIN keeps casual snoopers out, but it is not strong encryption.
   The app is also hidden from the app-switcher preview while a PIN is set, and
@@ -27,8 +28,13 @@ no server and no analytics.
 ## Features
 
 - **Today:** cycle day, current phase, and "next period in X days" (or "X days late").
-- **Calendar** (weeks start on Monday): logged period, predicted period, fertile
-  window and estimated ovulation. Tap any day to log it; swipe to change month.
+  A ring maps the whole cycle with a marker for today. Quick chips (+ Flow,
+  + Mood, + Symptoms) open the log at the right section, and the **+** button
+  logs another day from a tap-to-pick calendar.
+- **Calendar** (weeks start on Monday): heavy, medium and light flow each have
+  their own colour, spotting is a dashed ring, and the predicted period, fertile
+  window and estimated ovulation are marked. A purple dot means symptoms or
+  notes, a yellow dot means mood. Tap any day to log it; swipe to change month.
 - **Daily log:** flow (none, spotting, light, medium, heavy), 10 symptoms, mood and a note.
 - **Period started** button that fills in your typical period length, plus
   **Period ended today** when it stops early.
@@ -37,7 +43,11 @@ no server and no analytics.
   days unless you change them) are used until 2 cycles are logged.
   Ovulation is estimated at next period start − 14 days, and the fertile window
   runs from 5 days before ovulation to 1 day after.
-- **History:** every period with its length and cycle length, plus averages.
+- **Insights:** every period with its length and cycle length, plus averages.
+  Tap a cycle to see its day-by-day flow chart, symptom and mood counts, notes,
+  and every logged day (tap a day to open its log).
+- **Settings** (gear button): default cycle and period length, Auto/Light/Dark
+  appearance, PIN lock, backup and delete.
 - **Backup:** export to a `.json` file and import it again, choosing either
   *merge* (where a day is in both, the most recently edited version wins) or
   *replace*.
@@ -51,9 +61,11 @@ css/styles.css         styles
 js/app.js              UI and app logic
 js/cycle.js            cycle maths (pure functions)
 js/db.js               on-device storage (IndexedDB, localStorage fallback)
+js/theme-boot.js       applies the Light/Dark choice before the page draws
 sw.js                  service worker (offline cache)
 manifest.webmanifest   install metadata
 icons/                 app icons, including apple-touch-icon
+fonts/                 bundled Inter and Plus Jakarta Sans (OFL licence included)
 _headers               extra security headers (Netlify only)
 ```
 

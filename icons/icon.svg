@@ -1,7 +1,2 @@
-<!-- Quiet Moon app icon. Author: Vishal Gangaram -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#F7F3EE"/>
-  <circle cx="256" cy="256" r="170" fill="none" stroke="#ECE8FD" stroke-width="34"/>
-  <path d="M256 86a170 170 0 0 1 170 170" fill="none" stroke="#8E7CF0" stroke-width="34" stroke-linecap="round"/>
-  <path d="M256 150c34 42 70 84 70 124a70 70 0 0 1-140 0c0-40 36-82 70-124Z" fill="#E8697D"/>
-</svg>
+<!-- Quiet Moon app icon ("The Nest"). Author: Vishal Gangaram -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#321A3B"/><g><path d="M214.62 85.94 A173.78 173.78 0 1 0 421.10 328.86 A159.47 159.47 0 0 1 214.62 85.94 Z" fill="#D0764F" stroke="#D0764F" stroke-width="8.2" stroke-linejoin="round"/><path d="M302.98 147.57 L262.61 215.15 A47.02 47.02 0 1 0 343.35 215.15 Z" fill="#F3B7C3" stroke="#F3B7C3" stroke-width="6" stroke-linejoin="round"/></g></svg>

@@ -33,7 +33,7 @@ const MOOD_IDS = new Set(MOODS.map(([id]) => id));
 const FLOW_IDS = new Set(FLOWS.map((f) => f.id));
 const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5, theme: 'auto' };
 const THEMES = new Set(['auto', 'light', 'dark']);
-const THEME_BG = { light: '#F7F3EE', dark: '#1B1726' };
+const THEME_BG = { light: '#FAF8F6', dark: '#161312' };
 const RELOCK_AFTER_MS = 60 * 1000;
 const EXPORT_APP_ID = 'cycle-tracker-pwa';
 
@@ -277,24 +277,63 @@ function renderCalendar() {
     const cls = ['day'];
     if (!inMonth) cls.push('out');
     if (d === t) cls.push('today');
-    if (periodDays.has(d) || (e && PERIOD_FLOWS.has(e.flow))) cls.push('period');
+    if (periodDays.has(d) || (e && PERIOD_FLOWS.has(e.flow))) {
+      cls.push('period', `fl-${e && PERIOD_FLOWS.has(e.flow) ? e.flow : 'medium'}`);
+    }
     else if (e && e.flow === 'spotting') cls.push('spotting');
     else if (mk.predicted) cls.push('predicted');
     if (!cls.includes('period') && !mk.predicted) {
       if (mk.ovulation) cls.push('ovulation');
       else if (mk.fertile) cls.push('fertile');
     }
-    const hasExtra = e && ((e.symptoms && e.symptoms.length) || e.mood || (e.note && e.note.trim()));
+    const hasSymptoms = !!(e && ((e.symptoms && e.symptoms.length) || (e.note && e.note.trim())));
+    const hasMood = !!(e && e.mood);
     const labels = [fmtLong(d)];
-    if (cls.includes('period')) labels.push('period');
+    if (cls.includes('period')) labels.push(`period, ${e && PERIOD_FLOWS.has(e.flow) ? e.flow : 'medium'} flow`);
     if (cls.includes('spotting')) labels.push('spotting');
     if (cls.includes('predicted')) labels.push('predicted period');
     if (cls.includes('ovulation')) labels.push('estimated ovulation');
     if (cls.includes('fertile')) labels.push('fertile window');
-    if (hasExtra) labels.push('has notes');
-    html += `<button type="button" role="gridcell" class="${cls.join(' ')}" data-date="${ds}" aria-label="${esc(labels.join(', '))}"${d === t ? ' aria-current="date"' : ''}><span class="num">${dt.getUTCDate()}</span>${hasExtra ? '<span class="dot" aria-hidden="true"></span>' : ''}</button>`;
+    if (hasSymptoms) labels.push('symptoms or notes logged');
+    if (hasMood) labels.push('mood logged');
+    const dots = hasSymptoms || hasMood
+      ? `<span class="dots" aria-hidden="true">${hasSymptoms ? '<span class="dot dot-symptom"></span>' : ''}${hasMood ? '<span class="dot dot-mood"></span>' : ''}</span>`
+      : '';
+    html += `<button type="button" role="gridcell" class="${cls.join(' ')}" data-date="${ds}" aria-label="${esc(labels.join(', '))}"${d === t ? ' aria-current="date"' : ''}><span class="num">${dt.getUTCDate()}</span>${dots}</button>`;
   }
   $('#cal-grid').innerHTML = html;
+}
+
+function renderMiniCal() {
+  const { y, m, sel } = state.pick;
+  const t = today();
+  const first = Math.round(Date.UTC(y, m, 1) / 86400000);
+  const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const lead = (dateFromDay(first).getUTCDay() + 6) % 7; // Monday first
+  const periodDays = new Set();
+  for (const p of state.derived.periods) for (let d = p.start; d <= p.end; d++) periodDays.add(d);
+  $('#mini-title').textContent = dateFromDay(first).toLocaleDateString(undefined, { timeZone: 'UTC', month: 'long', year: 'numeric' });
+  let html = '';
+  for (let i = 0; i < lead; i++) html += '<span class="day blank" aria-hidden="true"></span>';
+  for (let n = 0; n < daysInMonth; n++) {
+    const d = first + n;
+    const ds = fromDay(d);
+    const future = d > t;
+    const cls = ['day'];
+    if (d === sel) cls.push('sel');
+    if (d === t) cls.push('today');
+    if (periodDays.has(d)) cls.push('was-period');
+    const logged = state.entries.has(ds);
+    const label = [fmtLong(d)];
+    if (periodDays.has(d)) label.push('period');
+    if (logged) label.push('already logged');
+    if (future) label.push('in the future');
+    html += `<button type="button" role="gridcell" class="${cls.join(' ')}" data-pick="${ds}" aria-label="${esc(label.join(', '))}" aria-selected="${d === sel}"${future ? ' disabled' : ''}><span class="num">${n + 1}</span>${logged ? '<span class="dots" aria-hidden="true"><span class="dot dot-logged"></span></span>' : ''}</button>`;
+  }
+  $('#mini-grid').innerHTML = html;
+  // Can't page into months that are entirely in the future.
+  $('#mini-next').disabled = first + daysInMonth - 1 >= t;
+  $('#day-go').textContent = sel === t ? 'Log today' : `Log ${fmt(sel, { weekday: 'short', month: 'short', day: 'numeric' })}`;
 }
 
 function renderHistory() {
@@ -328,17 +367,85 @@ function renderHistory() {
         <rect class="bar-cycle" x="0" y="0" width="${scale(cycleSpan)}" height="8" rx="4"/>
         <rect class="bar-period" x="0" y="0" width="${scale(p.length)}" height="8" rx="4"/>
       </svg>`;
-    return `<li class="card hist-item${isCurrent ? ' current' : ''}">
-      <div class="hist-dot" aria-hidden="true"></div>
-      <div class="hist-main">
+    return `<li><button type="button" class="card hist-item${isCurrent ? ' current' : ''}" data-cycle="${i}" aria-label="${esc(`${fmtRange(p.start, p.end)} ${year}, ${cycleText}. Show details`)}">
+      <span class="hist-dot" aria-hidden="true"></span>
+      <span class="hist-main">
         <span class="hist-date">${esc(fmtRange(p.start, p.end))} <span class="hist-year">${year}</span></span>
         <span class="hist-sub">${esc(cycleText)}</span>
-      </div>
+      </span>
       <span class="hist-len">${plural(p.length, 'day')}</span>
+      <span class="hist-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       ${bar}
-    </li>`;
+    </button></li>`;
   });
   list.innerHTML = rows.reverse().join('');
+}
+
+const FLOW_RANK = { spotting: 1, light: 2, medium: 3, heavy: 4 };
+const labelOf = (list, id) => (list.find(([k]) => k === id) || [id, id])[1];
+
+function openCycle(i) {
+  const { periods, today: t } = state.derived;
+  const p = periods[i];
+  if (!p) return;
+  const next = periods[i + 1];
+  const end = next ? next.start - 1 : Math.max(t, p.end);
+  const days = [];
+  for (let d = p.start; d <= end; d++) {
+    const e = state.entries.get(fromDay(d));
+    if (e) days.push({ d, e });
+  }
+  const year = dateFromDay(p.start).getUTCFullYear();
+  $('#cycle-eyebrow').textContent = next ? `Cycle · ${year}` : `Current cycle · ${year}`;
+  $('#cycle-title').textContent = fmtRange(p.start, end);
+
+  const cycleLen = next ? `${next.start - p.start} days` : `Day ${t - p.start + 1}`;
+  const stat = (k, v) => `<div class="cstat"><span class="cstat-k">${k}</span><span class="cstat-v">${esc(v)}</span></div>`;
+  let html = `<div class="cstats">${stat(next ? 'Cycle' : 'So far', cycleLen)}${stat('Period', `${p.length} days`)}${stat('Logged', `${days.length} days`)}</div>`;
+
+  // Flow: one bar per day of the period, plus any spotting in the cycle.
+  const flowDays = [];
+  for (let d = p.start; d <= end; d++) {
+    const e = state.entries.get(fromDay(d));
+    const inPeriod = d <= p.end;
+    const flow = e && e.flow !== 'none' ? e.flow : (inPeriod ? 'medium' : null);
+    if (flow) flowDays.push({ d, flow, n: d - p.start + 1 });
+  }
+  html += '<section class="csec"><h3 class="csec-h">Flow</h3>';
+  html += `<div class="fchart" role="img" aria-label="${esc(flowDays.map((f) => `Day ${f.n} ${f.flow}`).join(', '))}">`;
+  html += flowDays.map((f) => `<div class="fcol"><span class="fbar f-${f.flow}"></span><span class="fday">D${f.n}</span></div>`).join('');
+  html += '</div><div class="fkey" aria-hidden="true"><span><i class="f-heavy"></i>Heavy</span><span><i class="f-medium"></i>Medium</span><span><i class="f-light"></i>Light</span><span><i class="f-spotting"></i>Spotting</span></div></section>';
+
+  // Symptoms and moods, most frequent first.
+  const count = (key) => {
+    const m = new Map();
+    for (const { e } of days) for (const v of (key === 'mood' ? (e.mood ? [e.mood] : []) : e.symptoms)) m.set(v, (m.get(v) || 0) + 1);
+    return [...m].sort((a, b) => b[1] - a[1]);
+  };
+  const tally = (rows, list, cls) => rows.length
+    ? `<div class="tally">${rows.map(([id, c]) => `<span class="tchip ${cls}">${esc(labelOf(list, id))}<b>${c}</b></span>`).join('')}</div>`
+    : '<p class="cempty">Nothing logged this cycle.</p>';
+  html += `<section class="csec"><h3 class="csec-h"><i class="kdot dot-symptom"></i>Symptoms</h3>${tally(count('symptoms'), SYMPTOMS, 't-symptom')}</section>`;
+  html += `<section class="csec"><h3 class="csec-h"><i class="kdot dot-mood"></i>Mood</h3>${tally(count('mood'), MOODS, 't-mood')}</section>`;
+
+  const notes = days.filter(({ e }) => e.note && e.note.trim());
+  if (notes.length) {
+    html += `<section class="csec"><h3 class="csec-h">Notes</h3><ul class="cnotes">${notes.map(({ d, e }) => `<li><span class="cnote-d">${esc(fmtShort(d))}</span>${esc(e.note.trim())}</li>`).join('')}</ul></section>`;
+  }
+
+  // Every logged day; tap to open that day's log.
+  html += `<section class="csec"><h3 class="csec-h">Day by day</h3><ol class="cdays">${days.map(({ d, e }) => {
+    const bits = [];
+    if (e.symptoms.length) bits.push(e.symptoms.map((s) => labelOf(SYMPTOMS, s)).join(', '));
+    if (e.mood) bits.push(labelOf(MOODS, e.mood));
+    if (e.note && e.note.trim()) { const n = e.note.trim(); bits.push(`“${n.length > 40 ? `${n.slice(0, 40)}…` : n}”`); }
+    const flow = e.flow !== 'none' ? `<span class="cflow f-${e.flow}">${esc(labelOf(FLOWS.map((f) => [f.id, f.label]), e.flow))}</span>` : '';
+    return `<li><button type="button" class="cday" data-day="${fromDay(d)}"><span class="cday-d"><b>Day ${d - p.start + 1}</b>${esc(fmt(d, { weekday: 'short', day: 'numeric', month: 'short' }))}</span><span class="cday-x">${flow}<span class="cday-t">${esc(bits.join(' · '))}</span></span></button></li>`;
+  }).join('') || '<li class="cempty">No days logged.</li>'}</ol></section>`;
+
+  $('#cycle-body').innerHTML = html;
+  openSheet($('#cycle-sheet'));
+  $('#cycle-sheet').scrollTop = 0;
 }
 
 function applyTheme() {
@@ -372,6 +479,7 @@ function renderSettings() {
 /* ---------- navigation ---------- */
 
 function showView(name) {
+  if (name !== 'settings') state.lastView = name;
   state.view = name;
   for (const v of ['today', 'calendar', 'history', 'settings']) {
     $(`#view-${v}`).hidden = v !== name;
@@ -424,7 +532,7 @@ function buildLogControls() {
   });
 }
 
-function openLog(dateStr) {
+function openLog(dateStr, section) {
   state.logDate = dateStr;
   const d = toDay(dateStr);
   const t = today();
@@ -437,6 +545,13 @@ function openLog(dateStr) {
   $('#log-note').value = e.note || '';
   $('#log-clear').hidden = !state.entries.has(dateStr);
   openSheet($('#log-sheet'));
+  // Quick-action chips jump straight to one part of the log.
+  const target = section && $(`#log-${section}`);
+  if (target) {
+    target.scrollIntoView({ block: 'start' });
+    const first = target.querySelector('button');
+    if (first) first.focus({ preventScroll: true });
+  }
 }
 
 async function submitLog() {
@@ -707,7 +822,50 @@ function setupEvents() {
     const b = ev.target.closest('.tab');
     if (b) showView(b.dataset.view);
   });
-  $('#today-log-btn').addEventListener('click', () => openLog(todayStr()));
+  for (const b of $$('[data-open-settings]')) b.addEventListener('click', () => showView('settings'));
+  $('#history-list').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-cycle]');
+    if (b) openCycle(Number(b.dataset.cycle));
+  });
+  $('#cycle-body').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-day]');
+    if (!b) return;
+    $('#cycle-sheet').close('day');
+    openLog(b.dataset.day);
+  });
+  $('#settings-back').addEventListener('click', () => showView(state.lastView || 'today'));
+  $('.quick-chips').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-quick]');
+    if (b) openLog(todayStr(), b.dataset.quick);
+  });
+  // "Log another day": a small tap-to-pick calendar (defaults to yesterday).
+  $('#today-log-btn').addEventListener('click', () => {
+    const sel = today() - 1;
+    const dt = dateFromDay(sel);
+    state.pick = { sel, y: dt.getUTCFullYear(), m: dt.getUTCMonth() };
+    renderMiniCal();
+    openSheet($('#day-sheet'));
+  });
+  $('#mini-grid').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-pick]');
+    if (!b || b.disabled) return;
+    state.pick.sel = toDay(b.dataset.pick);
+    renderMiniCal();
+  });
+  const shiftPick = (delta) => {
+    const d = new Date(Date.UTC(state.pick.y, state.pick.m + delta, 1));
+    state.pick.y = d.getUTCFullYear();
+    state.pick.m = d.getUTCMonth();
+    renderMiniCal();
+  };
+  $('#mini-prev').addEventListener('click', () => shiftPick(-1));
+  $('#mini-next').addEventListener('click', () => shiftPick(1));
+  $('#day-form').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (!state.pick || state.pick.sel > today()) { toast('Pick today or an earlier day'); return; }
+    $('#day-sheet').close('go');
+    openLog(fromDay(state.pick.sel));
+  });
   $('#today-log-card').addEventListener('click', () => openLog(todayStr()));
   $('#period-btn').addEventListener('click', openPeriodSheet);
   $('#period-end-btn').addEventListener('click', periodEndedToday);
