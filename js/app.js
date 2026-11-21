@@ -31,7 +31,9 @@ const MOODS = [
 const SYMPTOM_IDS = new Set(SYMPTOMS.map(([id]) => id));
 const MOOD_IDS = new Set(MOODS.map(([id]) => id));
 const FLOW_IDS = new Set(FLOWS.map((f) => f.id));
-const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5 };
+const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5, theme: 'auto' };
+const THEMES = new Set(['auto', 'light', 'dark']);
+const THEME_BG = { light: '#F7F3EE', dark: '#1B1726' };
 const RELOCK_AFTER_MS = 60 * 1000;
 const EXPORT_APP_ID = 'cycle-tracker-pwa';
 
@@ -100,6 +102,7 @@ function sanitizeSettings(raw) {
   const s = { ...DEFAULT_SETTINGS };
   if (raw && Number.isInteger(raw.cycleLength) && raw.cycleLength >= 15 && raw.cycleLength <= 60) s.cycleLength = raw.cycleLength;
   if (raw && Number.isInteger(raw.periodLength) && raw.periodLength >= 1 && raw.periodLength <= 15) s.periodLength = raw.periodLength;
+  if (raw && THEMES.has(raw.theme)) s.theme = raw.theme;
   return s;
 }
 
@@ -338,7 +341,26 @@ function renderHistory() {
   list.innerHTML = rows.reverse().join('');
 }
 
+function applyTheme() {
+  const t = state.settings.theme;
+  const root = document.documentElement;
+  if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t);
+  else root.removeAttribute('data-theme');
+  // Keep the phone's status bar colour in step with the chosen theme.
+  for (const m of $$('meta[name="theme-color"]')) {
+    const isDarkTag = (m.getAttribute('media') || '').includes('dark');
+    m.setAttribute('content', t === 'auto' ? (isDarkTag ? THEME_BG.dark : THEME_BG.light) : THEME_BG[t]);
+  }
+  // Mirror just the theme name so theme-boot.js can apply it before first paint.
+  try {
+    if (t === 'auto') localStorage.removeItem('cycle.theme');
+    else localStorage.setItem('cycle.theme', t);
+  } catch { /* ignore */ }
+  for (const b of $$('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === t));
+}
+
 function renderSettings() {
+  applyTheme();
   $('#set-cycle').textContent = state.settings.cycleLength;
   $('#set-period').textContent = state.settings.periodLength;
   $('#pin-status').textContent = state.pin ? 'On — asked when the app opens' : 'Off';
@@ -764,6 +786,14 @@ function setupEvents() {
     state.pin = null;
     renderSettings();
     toast('PIN removed');
+  });
+
+  $('#theme-seg').addEventListener('click', async (ev) => {
+    const b = ev.target.closest('[data-theme-choice]');
+    if (!b || b.dataset.themeChoice === state.settings.theme) return;
+    state.settings.theme = b.dataset.themeChoice;
+    await saveSettings();
+    applyTheme();
   });
 
   $('#export-btn').addEventListener('click', exportData);

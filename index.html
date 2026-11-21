@@ -21,6 +21,7 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <script src="js/theme-boot.js"></script>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -199,6 +200,18 @@
         </div>
       </div>
 
+      <h2 class="section-h">Appearance</h2>
+      <div class="card list">
+        <div class="row row-stack">
+          <div class="row-text"><span class="row-k" id="theme-label">Theme</span><span class="row-sub">Auto follows your phone’s setting</span></div>
+          <div class="seg seg-3" id="theme-seg" role="radiogroup" aria-labelledby="theme-label">
+            <button type="button" class="seg-btn" role="radio" aria-checked="true" data-theme-choice="auto">Auto</button>
+            <button type="button" class="seg-btn" role="radio" aria-checked="false" data-theme-choice="light">Light</button>
+            <button type="button" class="seg-btn" role="radio" aria-checked="false" data-theme-choice="dark">Dark</button>
+          </div>
+        </div>
+      </div>
+
       <h2 class="section-h">Privacy &amp; lock</h2>
       <div class="card list">
         <div class="row">
@@ -235,7 +248,7 @@
         <h2 class="about-h">Private by design</h2>
         <p>No account, no server, no analytics. Your entries are stored only on this device (<span id="storage-kind">…</span>) and the app is technically blocked from sending data anywhere. Export a backup regularly — if you delete the app or clear browser data, your entries are gone.</p>
         <p><strong>Not medical advice.</strong> Predictions are estimates based on averages. They are not suitable for contraception or diagnosis. Talk to a clinician about anything that worries you.</p>
-        <p class="version">Cycle v1.1.0</p>
+        <p class="version">Cycle v1.2.0</p>
       </div>
     </section>
   </main>

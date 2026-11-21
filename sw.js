@@ -5,7 +5,7 @@
  *
  * When you change any app file, bump CACHE_VERSION so phones pick up the update.
  */
-const CACHE_VERSION = 'cycle-v1.1.0';
+const CACHE_VERSION = 'cycle-v1.2.0';
 const APP_FILES = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const APP_FILES = [
   './js/app.js',
   './js/db.js',
   './js/cycle.js',
+  './js/theme-boot.js',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',
