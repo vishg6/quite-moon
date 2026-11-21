@@ -1,0 +1,5 @@
+# Local-only Claude Code settings (hooks installed by Impeccable)
+.claude/settings.local.json
+# Impeccable runtime working files
+.impeccable/
+**/.impeccable/
