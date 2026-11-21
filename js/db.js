@@ -1,5 +1,5 @@
 /*
- * Cycle — on-device storage. IndexedDB first, localStorage as a fallback.
+ * Quiet Moon — on-device storage. IndexedDB first, localStorage as a fallback.
  * Nothing here (or anywhere in the app) touches the network.
  * Author: Vishal Gangaram
  */

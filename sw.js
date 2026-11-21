@@ -1,11 +1,11 @@
 /*
- * Cycle — service worker. Caches the app shell so it works fully offline.
+ * Quiet Moon — service worker. Caches the app shell so it works fully offline.
  * It only ever serves this app's own files; it never contacts any other origin.
  * Author: Vishal Gangaram
  *
  * When you change any app file, bump CACHE_VERSION so phones pick up the update.
  */
-const CACHE_VERSION = 'cycle-v1.2.0';
+const CACHE_VERSION = 'cycle-v1.3.0';
 const APP_FILES = [
   './',
   './index.html',

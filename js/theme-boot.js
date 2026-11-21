@@ -1,5 +1,5 @@
 /*
- * Cycle — applies the saved Light/Dark choice before the page paints, so there
+ * Quiet Moon — applies the saved Light/Dark choice before the page paints, so there
  * is no flash of the wrong theme. Only the theme name is kept here.
  * Author: Vishal Gangaram
  */

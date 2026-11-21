@@ -1,4 +1,4 @@
-# Cycle — a private period tracker
+# Quiet Moon — a private period tracker
 
 *Author: Vishal Gangaram*
 
@@ -100,13 +100,13 @@ opened online, and use it from the launch after that.
 1. Open the app's URL in **Safari**. Other browsers on older iOS versions cannot install web apps.
 2. Tap the **Share** button (the square with an up arrow).
 3. Scroll down and tap **Add to Home Screen**, then **Add**.
-4. Open Cycle from the new home-screen icon. It runs full-screen and offline.
+4. Open Quiet Moon from the new home-screen icon. It runs full-screen and offline.
 
 **Android (Chrome):**
 1. Open the app's URL in **Chrome**.
 2. Tap **Install app** if the prompt appears. Otherwise open the **⋮** menu and choose
    **Install app** (or **Add to Home screen**).
-3. Confirm. Cycle then appears in your app drawer and on your home screen.
+3. Confirm. Quiet Moon then appears in your app drawer and on your home screen.
 
 > Data stored by the home-screen app is separate from data in a normal browser tab.
 > Log your entries in the installed app.

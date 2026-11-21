@@ -1,5 +1,5 @@
 /*
- * Cycle — cycle maths (pure functions, no DOM, no storage).
+ * Quiet Moon — cycle maths (pure functions, no DOM, no storage).
  * Author: Vishal Gangaram
  *
  * Dates are handled as "YYYY-MM-DD" strings in the user's local calendar and

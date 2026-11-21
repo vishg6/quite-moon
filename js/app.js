@@ -1,5 +1,5 @@
 /*
- * Cycle — UI and app logic.
+ * Quiet Moon — UI and app logic.
  * Author: Vishal Gangaram
  *
  * Privacy: this file never calls fetch/XHR/WebSocket/sendBeacon. All data is
@@ -622,14 +622,14 @@ function buildExport() {
 
 async function exportData() {
   const json = JSON.stringify(buildExport(), null, 2);
-  const name = `cycle-backup-${todayStr()}.json`;
+  const name = `quiet-moon-backup-${todayStr()}.json`;
   const blob = new Blob([json], { type: 'application/json' });
   // On phones the share sheet ("Save to Files", AirDrop, Drive…) is the most reliable route.
   const isTouch = matchMedia('(pointer: coarse)').matches;
   try {
     const file = new File([blob], name, { type: 'application/json' });
     if (isTouch && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Cycle backup' });
+      await navigator.share({ files: [file], title: 'Quiet Moon backup' });
       toast('Backup ready');
       return;
     }
@@ -651,7 +651,7 @@ function parseBackup(text) {
   let data;
   try { data = JSON.parse(text); } catch { throw new Error('This file is not valid JSON.'); }
   if (!data || data.app !== EXPORT_APP_ID || !Array.isArray(data.entries)) {
-    throw new Error('This doesn’t look like a Cycle backup file.');
+    throw new Error('This doesn’t look like a Quiet Moon backup file.');
   }
   const entries = data.entries.map(sanitizeEntry).filter(Boolean);
   return { entries, settings: data.settings ? sanitizeSettings(data.settings) : null, exportedAt: data.exportedAt };
