@@ -1,6 +1,6 @@
 # Quiet Moon — a private period tracker
 
-*Author: Vishal Gangaram*
+*Author: Vish
 
 An installable web app (PWA) for tracking periods on iPhone and Android.
 Plain HTML, CSS and JavaScript with no build step, no dependencies, no accounts,
