@@ -21,6 +21,11 @@
   --sun-soft: #FDF1D4;
   --danger: #D0453B;
   --danger-soft: #FBE1DE;
+  --sun-ink: #8A6512;
+  --bar-bg: #2B2340;
+  --bar-fg: #CFC8DC;
+  --bar-active-bg: #F7F3EE;
+  --bar-active-fg: #2B2340;
 
   --radius-xl: 30px;
   --radius-lg: 22px;
@@ -34,7 +39,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #1B1726;
     --surface: #262036;
     --surface-2: #30293F;
@@ -54,8 +59,40 @@
     --danger: #FF7468;
     --danger-soft: #4A2522;
     --shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 8px 24px rgba(0, 0, 0, .25);
+    --bar-bg: #0F0C17;
+    --bar-fg: #A99FC0;
+    --bar-active-bg: #3A3250;
+    --bar-active-fg: #F3EFFA;
+    --sun-ink: #F6C863;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #1B1726;
+  --surface: #262036;
+  --surface-2: #30293F;
+  --ink: #F3EFFA;
+  --muted: #A99FC0;
+  --line: #3A3250;
+  --rose: #F07D90;
+  --rose-ink: #FFB3BF;
+  --rose-soft: #4A2633;
+  --teal: #57C4B1;
+  --teal-ink: #9BE6D8;
+  --teal-soft: #1E3F3A;
+  --lav: #A898FF;
+  --lav-ink: #CFC6FF;
+  --lav-soft: #352D58;
+  --sun-soft: #43391E;
+  --danger: #FF7468;
+  --danger-soft: #4A2522;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .2), 0 8px 24px rgba(0, 0, 0, .25);
+  --bar-bg: #0F0C17;
+  --bar-fg: #A99FC0;
+  --bar-active-bg: #3A3250;
+  --bar-active-fg: #F3EFFA;
+  --sun-ink: #F6C863;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -126,21 +163,30 @@ button { cursor: pointer; }
 .hero {
   display: flex; flex-direction: column; align-items: center; text-align: center;
   padding: 26px 20px 24px; gap: 10px;
+  --tint: var(--surface-2);
   background:
-    radial-gradient(120% 80% at 50% 0%, var(--rose-soft) 0%, transparent 60%),
+    radial-gradient(120% 70% at 50% 0%, var(--tint) 0%, transparent 62%),
     var(--surface);
 }
-.ring-wrap { position: relative; width: min(62vw, 230px); aspect-ratio: 1; }
+.hero[data-phase="menstrual"], .hero[data-phase="due"], .hero[data-phase="late"] { --tint: var(--rose-soft); }
+.hero[data-phase="follicular"] { --tint: var(--lav-soft); }
+.hero[data-phase="fertile"], .hero[data-phase="ovulation"] { --tint: var(--teal-soft); }
+.hero[data-phase="luteal"] { --tint: var(--sun-soft); }
+.ring-wrap { position: relative; width: min(56vw, 216px); max-width: 100%; aspect-ratio: 1; }
 .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-.ring circle { fill: none; stroke-width: 14; }
+.ring .seg { fill: none; stroke-width: 14; }
 .ring-track { stroke: var(--surface-2); }
-.ring-progress { stroke: var(--rose); stroke-linecap: round; transition: stroke-dasharray .6s ease; }
-.ring-progress[data-phase="follicular"] { stroke: var(--lav); }
-.ring-progress[data-phase="fertile"], .ring-progress[data-phase="ovulation"] { stroke: var(--teal); }
-.ring-progress[data-phase="luteal"] { stroke: var(--sun); }
+.ring-period { stroke: var(--rose); opacity: .55; }
+.ring-fertile { stroke: var(--teal); opacity: .35; }
+.ring-ovulation { stroke: var(--teal); }
+.ring-marker { fill: var(--surface); stroke: var(--ink); stroke-width: 5; filter: drop-shadow(0 2px 3px rgba(43, 35, 64, .25)); }
+.ring-marker[data-phase="menstrual"], .ring-marker[data-phase="late"], .ring-marker[data-phase="due"] { stroke: var(--rose); }
+.ring-marker[data-phase="fertile"], .ring-marker[data-phase="ovulation"] { stroke: var(--teal); }
 .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .ring-label { color: var(--muted); font-size: 15px; font-weight: 600; }
-.ring-big { font-size: 64px; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
+.ring-big { font-size: 60px; font-weight: 800; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.ring-empty { width: 52px; height: 52px; border-radius: 50% 50% 50% 0; transform: rotate(135deg); background: var(--rose-soft); box-shadow: inset 0 0 0 3px var(--rose); margin: 8px 0 4px; }
+@media (max-height: 700px) { .ring-wrap { width: min(48vw, 184px); } .ring-big { font-size: 52px; } }
 .ring-sub { color: var(--muted); font-size: 15px; }
 
 .phase-pill {
@@ -151,30 +197,32 @@ button { cursor: pointer; }
 .phase-pill[data-phase="menstrual"], .phase-pill[data-phase="due"], .phase-pill[data-phase="late"] { background: var(--rose-soft); color: var(--rose-ink); }
 .phase-pill[data-phase="follicular"] { background: var(--lav-soft); color: var(--lav-ink); }
 .phase-pill[data-phase="fertile"], .phase-pill[data-phase="ovulation"] { background: var(--teal-soft); color: var(--teal-ink); }
-.phase-pill[data-phase="luteal"] { background: var(--sun-soft); color: #8A6512; }
-@media (prefers-color-scheme: dark) { .phase-pill[data-phase="luteal"] { color: var(--sun); } }
+.phase-pill[data-phase="luteal"] { background: var(--sun-soft); color: var(--sun-ink); }
 
-.headline { margin: 4px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
-.blurb { margin: 0; color: var(--muted); max-width: 34ch; }
+.headline { margin: 4px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; text-wrap: balance; }
+.blurb { margin: 0; color: var(--muted); max-width: 34ch; text-wrap: pretty; }
 .hero-actions { display: flex; gap: 10px; margin-top: 8px; width: 100%; justify-content: center; }
 .hero-actions .btn { flex: 1; max-width: 320px; }
 
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .stat { padding: 14px 12px; border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 4px; min-width: 0; box-shadow: none; }
-.stat-k { font-size: 13px; font-weight: 600; opacity: .8; }
-.stat-v { font-size: 16px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.stat-k { font-size: 13px; font-weight: 700; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-v { font-size: 17px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .tint-rose { background: var(--rose-soft); color: var(--rose-ink); }
 .tint-teal { background: var(--teal-soft); color: var(--teal-ink); }
 .tint-lav { background: var(--lav-soft); color: var(--lav-ink); }
 
 .today-log {
-  border: 0; text-align: left; display: flex; flex-direction: column; gap: 4px; width: 100%;
-  padding: 18px 20px; min-height: 72px;
+  border: 0; text-align: left; width: 100%;
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px;
+  padding: 18px 16px 18px 20px; min-height: 76px;
 }
 .today-log-k { font-weight: 800; }
-.today-log-v { color: var(--muted); }
+.today-log-v { color: var(--muted); grid-column: 1; min-width: 0; }
+.today-log-go { grid-column: 2; grid-row: 1 / span 2; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--lav-soft); color: var(--lav-ink); }
+.today-log:active { transform: scale(.99); }
 
-.disclaimer { margin: 0; padding: 0 6px; font-size: 14px; color: var(--muted); }
+.disclaimer { margin: 0; padding: 0 6px; font-size: 14px; color: var(--muted); text-wrap: pretty; }
 
 /* ---------- calendar ---------- */
 .cal-nav { display: flex; gap: 8px; }
@@ -194,7 +242,8 @@ button { cursor: pointer; }
 .day.out { opacity: .35; }
 .day.today { box-shadow: inset 0 0 0 2px var(--ink); }
 .day.period { background: var(--rose); color: #fff; }
-.day.spotting { background: var(--rose-soft); color: var(--rose-ink); }
+.day.spotting { background: var(--rose-soft); color: var(--rose-ink); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rose) 45%, transparent); }
+.day.today.spotting { box-shadow: inset 0 0 0 2px var(--ink); }
 .day.predicted { box-shadow: inset 0 0 0 2px var(--rose); color: var(--rose-ink); background: repeating-linear-gradient(135deg, transparent 0 5px, var(--rose-soft) 5px 9px); }
 .day.today.predicted { box-shadow: inset 0 0 0 2px var(--rose), 0 0 0 2px var(--ink); }
 .day.fertile { background: var(--teal-soft); color: var(--teal-ink); }
@@ -211,18 +260,23 @@ button { cursor: pointer; }
 .sw-predicted { box-shadow: inset 0 0 0 2px var(--rose); background: repeating-linear-gradient(135deg, transparent 0 3px, var(--rose-soft) 3px 6px); }
 .sw-fertile { background: var(--teal-soft); box-shadow: inset 0 0 0 1px var(--teal); }
 .sw-ovulation { background: var(--teal); }
-.sw-spotting { background: var(--rose-soft); }
+.sw-spotting { background: var(--rose-soft); box-shadow: inset 0 0 0 1px var(--rose); }
 .sw-note { width: 8px; height: 8px; margin: 0 5px; background: var(--lav); }
 
 /* ---------- history ---------- */
 .history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.hist-item { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: var(--radius-lg); }
-.hist-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--rose); flex: none; }
+.hist-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 14px; padding: 16px 18px; border-radius: var(--radius-lg); }
+.hist-bar { grid-column: 2 / 4; width: 100%; height: 8px; margin-top: 6px; display: block; }
+.hist-bar .bar-track { fill: var(--surface-2); }
+.hist-bar .bar-period { fill: var(--rose); }
+.hist-bar .bar-cycle { fill: var(--lav); opacity: .35; }
+.hist-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--rose); grid-row: 1; }
+.hist-item.current .hist-dot { box-shadow: 0 0 0 4px var(--rose-soft); }
 .hist-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .hist-date { font-weight: 800; }
 .hist-year { color: var(--muted); font-weight: 600; font-size: 14px; }
 .hist-sub { color: var(--muted); font-size: 14px; }
-.hist-len { background: var(--rose-soft); color: var(--rose-ink); font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.hist-len { font-variant-numeric: tabular-nums; background: var(--rose-soft); color: var(--rose-ink); font-weight: 800; font-size: 14px; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
 .empty { color: var(--muted); }
 
 /* ---------- settings ---------- */
@@ -251,19 +305,20 @@ button { cursor: pointer; }
   width: min(calc(100% - 28px), 520px);
   height: var(--tabbar-h);
   display: grid; grid-template-columns: repeat(4, 1fr);
-  background: var(--ink);
+  background: var(--bar-bg);
   border-radius: 999px;
   padding: 8px;
   box-shadow: 0 12px 30px -10px rgba(43, 35, 64, .5);
   z-index: 10;
 }
 .tab {
-  border: 0; background: transparent; color: color-mix(in srgb, var(--bg) 70%, transparent);
+  border: 0; background: transparent; color: var(--bar-fg);
   border-radius: 999px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   font-size: 12px; font-weight: 700;
 }
 .tab svg { width: 24px; height: 24px; }
-.tab[aria-current="page"] { background: var(--bg); color: var(--ink); }
+.tab[aria-current="page"] { background: var(--bar-active-bg); color: var(--bar-active-fg); }
+.tab:active { transform: scale(.96); }
 
 /* ---------- sheets / dialogs ---------- */
 dialog { color: var(--ink); }
@@ -368,8 +423,9 @@ input[type="password"] { letter-spacing: .5em; font-size: 22px; text-align: cent
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-@media (min-width: 420px) {
-  .stat-v { font-size: 17px; }
+@media (max-width: 380px) {
+  .stepper button { width: 40px; height: 40px; }
+  .row-sub { font-size: 13px; }
 }
 @media (max-width: 360px) {
   .stat-row { grid-template-columns: 1fr; }

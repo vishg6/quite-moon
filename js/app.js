@@ -152,32 +152,51 @@ function render() {
 function renderToday() {
   const { status, stats, today: t } = state.derived;
   $('#today-date').textContent = fmtLong(t);
-  const progress = $('#ring-progress');
-  const circ = 2 * Math.PI * 86;
+  const R = 86;
+  const circ = 2 * Math.PI * R;
+  const arc = (el, fromFrac, toFrac) => {
+    const a = Math.max(0, Math.min(1, fromFrac));
+    const b = Math.max(a, Math.min(1, toFrac));
+    el.setAttribute('stroke-dasharray', `0 ${(a * circ).toFixed(2)} ${((b - a) * circ).toFixed(2)} ${circ.toFixed(2)}`);
+  };
+  const marker = $('#ring-marker');
+  $('#hero').dataset.phase = status.hasData ? status.phase : 'none';
   const pill = $('#phase-pill');
   const periodBtn = $('#period-btn');
   const endBtn = $('#period-end-btn');
 
   if (!status.hasData) {
-    $('#ring-label').textContent = 'Welcome';
-    $('#ring-big').textContent = '–';
-    $('#ring-sub').textContent = 'no cycle yet';
-    progress.setAttribute('stroke-dasharray', `0 ${circ}`);
-    pill.textContent = 'No data yet';
+    $('#ring-label').hidden = true;
+    $('#ring-big').hidden = true;
+    $('#ring-empty').hidden = false;
+    $('#ring-sub').textContent = 'No cycle yet';
+    for (const id of ['#ring-period', '#ring-fertile', '#ring-ovulation']) arc($(id), 0, 0);
+    marker.setAttribute('hidden', '');
+    pill.textContent = 'Getting started';
     pill.dataset.phase = 'none';
-    $('#headline').textContent = 'Log your period to get started.';
-    $('#blurb').textContent = 'Tap “Period started” on the first day of your period, or log past periods from the calendar.';
+    $('#headline').textContent = 'Log your first period';
+    $('#blurb').textContent = 'Tap “Period started” on its first day. You can also add past periods from the calendar.';
     $('#stat-row').hidden = true;
     periodBtn.hidden = false;
     endBtn.hidden = true;
   } else {
     const len = stats.avgCycle;
-    const frac = Math.min(status.cycleDay / len, 1);
-    $('#ring-label').textContent = 'Cycle day';
+    const start = status.lastPeriod.start;
+    $('#ring-label').hidden = false;
+    $('#ring-big').hidden = false;
+    $('#ring-empty').hidden = true;
     $('#ring-big').textContent = String(status.cycleDay);
-    $('#ring-sub').textContent = `of ~${len}`;
-    progress.setAttribute('stroke-dasharray', `${(frac * circ).toFixed(1)} ${circ.toFixed(1)}`);
-    progress.dataset.phase = status.phase;
+    $('#ring-sub').textContent = status.daysLate > 0 ? `expected ~${len}` : `of ~${len}`;
+    // The ring maps the whole cycle: logged period, fertile window, ovulation, and a marker for today.
+    arc($('#ring-period'), 0, status.lastPeriod.length / len);
+    arc($('#ring-fertile'), (status.fertileStart - start) / len, (status.fertileEnd - start + 1) / len);
+    arc($('#ring-ovulation'), (status.ovulation - start) / len, (status.ovulation - start + 1) / len);
+    const frac = Math.min((status.cycleDay - 0.5) / len, 1);
+    const ang = frac * 2 * Math.PI;
+    marker.setAttribute('cx', (100 + R * Math.cos(ang)).toFixed(2));
+    marker.setAttribute('cy', (100 + R * Math.sin(ang)).toFixed(2));
+    marker.dataset.phase = status.phase;
+    marker.removeAttribute('hidden');
     const ph = PHASES[status.phase];
     pill.textContent = ph.label;
     pill.dataset.phase = status.phase;
@@ -214,7 +233,7 @@ function renderToday() {
   }
 
   const e = state.entries.get(fromDay(t));
-  $('#today-log-summary').textContent = e ? summarizeEntry(e) : 'Nothing logged yet — tap to add flow, symptoms or mood.';
+  $('#today-log-summary').textContent = e ? summarizeEntry(e) : 'Nothing logged yet. Add flow, symptoms or mood.';
 }
 
 function summarizeEntry(e) {
@@ -297,13 +316,23 @@ function renderHistory() {
       ? `${cycleLen}-day cycle${ignored ? ' (ignored)' : ''}`
       : (p.start <= t ? `Current cycle · day ${t - p.start + 1}` : 'Upcoming');
     const year = dateFromDay(p.start).getUTCFullYear();
-    return `<li class="card hist-item">
+    // Bar: whole width = 45 days; lavender = cycle length, rose = period length.
+    const scale = (n) => Math.max(0, Math.min(100, (n / 45) * 100)).toFixed(1);
+    const cycleSpan = cycleLen ?? Math.max(t - p.start + 1, p.length);
+    const isCurrent = !next && p.start <= t;
+    const bar = `<svg class="hist-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
+        <rect class="bar-track" x="0" y="0" width="100" height="8" rx="4"/>
+        <rect class="bar-cycle" x="0" y="0" width="${scale(cycleSpan)}" height="8" rx="4"/>
+        <rect class="bar-period" x="0" y="0" width="${scale(p.length)}" height="8" rx="4"/>
+      </svg>`;
+    return `<li class="card hist-item${isCurrent ? ' current' : ''}">
       <div class="hist-dot" aria-hidden="true"></div>
       <div class="hist-main">
         <span class="hist-date">${esc(fmtRange(p.start, p.end))} <span class="hist-year">${year}</span></span>
         <span class="hist-sub">${esc(cycleText)}</span>
       </div>
       <span class="hist-len">${plural(p.length, 'day')}</span>
+      ${bar}
     </li>`;
   });
   list.innerHTML = rows.reverse().join('');

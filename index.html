@@ -60,15 +60,19 @@
         </button>
       </header>
 
-      <div class="hero card" id="hero">
+      <div class="hero card" id="hero" data-phase="none">
         <div class="ring-wrap">
           <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
-            <circle class="ring-track" cx="100" cy="100" r="86"/>
-            <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="86" stroke-dasharray="0 541"/>
+            <circle class="seg ring-track" cx="100" cy="100" r="86"/>
+            <circle class="seg ring-period" id="ring-period" cx="100" cy="100" r="86" stroke-dasharray="0 541"/>
+            <circle class="seg ring-fertile" id="ring-fertile" cx="100" cy="100" r="86" stroke-dasharray="0 541"/>
+            <circle class="seg ring-ovulation" id="ring-ovulation" cx="100" cy="100" r="86" stroke-dasharray="0 541"/>
+            <circle class="ring-marker" id="ring-marker" cx="186" cy="100" r="11" hidden/>
           </svg>
           <div class="ring-center">
             <span class="ring-label" id="ring-label">Cycle day</span>
             <span class="ring-big" id="ring-big">–</span>
+            <span class="ring-empty" id="ring-empty" hidden></span>
             <span class="ring-sub" id="ring-sub"></span>
           </div>
         </div>
@@ -83,11 +87,11 @@
 
       <div class="stat-row" id="stat-row" hidden>
         <div class="stat card tint-rose">
-          <span class="stat-k">Next period</span>
+          <span class="stat-k">Period</span>
           <span class="stat-v" id="stat-next">–</span>
         </div>
         <div class="stat card tint-teal">
-          <span class="stat-k">Fertile window</span>
+          <span class="stat-k">Fertile</span>
           <span class="stat-v" id="stat-fertile">–</span>
         </div>
         <div class="stat card tint-lav">
@@ -98,7 +102,8 @@
 
       <button type="button" class="card today-log" id="today-log-card">
         <span class="today-log-k">Today’s log</span>
-        <span class="today-log-v" id="today-log-summary">Nothing logged yet — tap to add flow, symptoms or mood.</span>
+        <span class="today-log-v" id="today-log-summary">Nothing logged yet. Add flow, symptoms or mood.</span>
+        <span class="today-log-go" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </button>
 
       <p class="disclaimer" id="defaults-note" hidden></p>
@@ -149,15 +154,15 @@
       </header>
       <div class="stat-row">
         <div class="stat card tint-rose">
-          <span class="stat-k">Avg. cycle</span>
+          <span class="stat-k">Cycle avg.</span>
           <span class="stat-v" id="avg-cycle">–</span>
         </div>
         <div class="stat card tint-lav">
-          <span class="stat-k">Avg. period</span>
+          <span class="stat-k">Period avg.</span>
           <span class="stat-v" id="avg-period">–</span>
         </div>
         <div class="stat card tint-teal">
-          <span class="stat-k">Cycles logged</span>
+          <span class="stat-k">Cycles</span>
           <span class="stat-v" id="cycles-count">0</span>
         </div>
       </div>
@@ -230,7 +235,7 @@
         <h2 class="about-h">Private by design</h2>
         <p>No account, no server, no analytics. Your entries are stored only on this device (<span id="storage-kind">…</span>) and the app is technically blocked from sending data anywhere. Export a backup regularly — if you delete the app or clear browser data, your entries are gone.</p>
         <p><strong>Not medical advice.</strong> Predictions are estimates based on averages. They are not suitable for contraception or diagnosis. Talk to a clinician about anything that worries you.</p>
-        <p class="version">Cycle v1.0.0</p>
+        <p class="version">Cycle v1.1.0</p>
       </div>
     </section>
   </main>
