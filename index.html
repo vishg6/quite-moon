@@ -32,10 +32,13 @@
 
   <!-- PIN lock -->
   <div id="lock" class="lock" hidden role="dialog" aria-modal="true" aria-labelledby="lock-title">
+    <svg class="lock-art" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+      <path class="lock-art-moon" d="M214.62 85.94 A173.78 173.78 0 1 0 421.10 328.86 A159.47 159.47 0 0 1 214.62 85.94 Z" stroke-width="8" stroke-linejoin="round"/>
+      <path class="lock-art-drop" d="M302.98 147.57 L262.61 215.15 A47.02 47.02 0 1 0 343.35 215.15 Z" stroke-width="6" stroke-linejoin="round"/>
+    </svg>
     <div class="lock-inner">
-      <div class="lock-logo" aria-hidden="true"></div>
-      <h1 id="lock-title" class="lock-title">Enter PIN</h1>
-      <p id="lock-msg" class="lock-msg" aria-live="polite">Your data is locked on this device.</p>
+      <h1 id="lock-title" class="lock-title">Quiet Moon</h1>
+      <p id="lock-msg" class="lock-msg" aria-live="polite">Enter your PIN to unlock</p>
       <div class="pin-dots" id="pin-dots" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
       <div class="keypad" id="keypad">
         <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
@@ -65,7 +68,7 @@
       </header>
 
       <div class="hero card" id="hero" data-phase="none">
-        <div class="ring-wrap">
+        <div class="ring-wrap" id="ring-go" role="button" tabindex="0" aria-label="Show this cycle in the calendar">
           <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
             <circle class="seg ring-track" cx="100" cy="100" r="86"/>
             <circle class="seg ring-period" id="ring-period" cx="100" cy="100" r="86" stroke-dasharray="0 541"/>
@@ -90,18 +93,18 @@
       </div>
 
       <div class="stat-row" id="stat-row" hidden>
-        <div class="stat card tint-rose">
-          <span class="stat-k">Period</span>
+        <button type="button" class="stat card tint-rose" id="go-period" aria-label="Next period. Show in calendar">
+          <span class="stat-k">Period <svg class="stat-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="stat-v" id="stat-next">–</span>
-        </div>
-        <div class="stat card tint-teal">
-          <span class="stat-k">Fertile</span>
+        </button>
+        <button type="button" class="stat card tint-teal" id="go-fertile" aria-label="Fertile window. Show in calendar">
+          <span class="stat-k">Fertile <svg class="stat-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="stat-v" id="stat-fertile">–</span>
-        </div>
-        <div class="stat card tint-lav">
-          <span class="stat-k">Ovulation</span>
+        </button>
+        <button type="button" class="stat card tint-lav" id="go-ovulation" aria-label="Ovulation. Show in calendar">
+          <span class="stat-k">Ovulation <svg class="stat-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="stat-v" id="stat-ovulation">–</span>
-        </div>
+        </button>
       </div>
 
       <div class="card today-log">
@@ -143,14 +146,19 @@
       </div>
       <button type="button" class="btn btn-soft btn-block" id="cal-today">Go to today</button>
       <ul class="legend" aria-label="Legend">
-        <li><span class="sw sw-heavy"></span>Heavy flow</li>
-        <li><span class="sw sw-medium"></span>Medium flow</li>
-        <li><span class="sw sw-light"></span>Light flow</li>
+        <li class="legend-h"><button type="button" class="legend-q" aria-expanded="false" aria-controls="info-flow">Flow <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor"/></svg></button></li>
+        <li class="legend-info" id="info-flow" hidden>How heavy your period was on each day, as you logged it. <b>Heavy</b>, <b>medium</b> and <b>light</b> count as period days. <b>Spotting</b> is light bleeding outside your period; it is shown but doesn’t start or extend a period.</li>
+        <li><span class="sw sw-heavy"></span>Heavy</li>
+        <li><span class="sw sw-medium"></span>Medium</li>
+        <li><span class="sw sw-light"></span>Light</li>
+        <li><span class="sw sw-spotting"></span>Spotting</li>
+        <li class="legend-h"><button type="button" class="legend-q" aria-expanded="false" aria-controls="info-pred">Predictions <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor"/></svg></button></li>
+        <li class="legend-info" id="info-pred" hidden>Estimates from your average cycle (your last 6 cycles, or your default lengths until 2 cycles are logged). <b>Predicted period</b>: when your next period is likely to start. <b>Ovulation</b>: estimated 14 days before your next period. <b>Fertile window</b>: the 5 days before ovulation, the day itself and the day after. These are estimates only — not medical advice or contraception.</li>
         <li><span class="sw sw-predicted"></span>Predicted period</li>
         <li><span class="sw sw-fertile"></span>Fertile window</li>
         <li><span class="sw sw-ovulation"></span>Ovulation (est.)</li>
-        <li><span class="sw sw-spotting"></span>Spotting</li>
-        <li><span class="sw sw-note"></span>Symptoms / notes</li>
+        <li class="legend-h">Logged</li>
+        <li><span class="sw sw-note"></span>Symptoms</li>
         <li><span class="sw sw-mood"></span>Mood</li>
       </ul>
       <p class="disclaimer">Tap any day to log. Predicted days are estimates, not medical advice or contraception.</p>
@@ -166,10 +174,10 @@
         <button type="button" class="icon-btn" data-open-settings aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg></button>
       </header>
       <div class="stat-row">
-        <div class="stat card tint-rose">
-          <span class="stat-k">Cycle avg.</span>
+        <button type="button" class="stat card tint-rose" data-chart="cycle" aria-label="Cycle length chart">
+          <span class="stat-k">Cycle avg. <svg class="stat-go" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <span class="stat-v" id="avg-cycle">–</span>
-        </div>
+        </button>
         <div class="stat card tint-lav">
           <span class="stat-k">Period avg.</span>
           <span class="stat-v" id="avg-period">–</span>
@@ -261,7 +269,7 @@
         <h2 class="about-h">Private by design</h2>
         <p>No account, no server, no analytics. Your entries are stored only on this device (<span id="storage-kind">…</span>) and the app is technically blocked from sending data anywhere. Export a backup regularly — if you delete the app or clear browser data, your entries are gone.</p>
         <p><strong>Not medical advice.</strong> Predictions are estimates based on averages. They are not suitable for contraception or diagnosis. Talk to a clinician about anything that worries you.</p>
-        <p class="version">Quiet Moon v1.4.0</p>
+        <p class="version">Quiet Moon v1.5.0</p>
       </div>
     </section>
   </main>
@@ -351,6 +359,21 @@
         <button type="submit" class="btn btn-primary btn-lg" value="save">Log period</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Insights charts -->
+  <dialog id="chart-sheet" class="sheet" aria-labelledby="chart-title">
+    <div class="sheet-inner">
+      <div class="grabber" aria-hidden="true"></div>
+      <header class="sheet-head">
+        <div>
+          <p class="eyebrow" id="chart-eyebrow">Insights</p>
+          <h2 id="chart-title" class="sheet-title">Chart</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+      </header>
+      <div id="chart-body" class="chart-body"></div>
+    </div>
   </dialog>
 
   <!-- Past cycle details -->

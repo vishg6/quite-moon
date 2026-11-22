@@ -35,6 +35,23 @@ const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5, theme: 'auto' };
 const THEMES = new Set(['auto', 'light', 'dark']);
 const THEME_BG = { light: '#FAF8F6', dark: '#161312' };
 const RELOCK_AFTER_MS = 60 * 1000;
+// Unlock lasts for this app session (survives a refresh, cleared when the app is closed).
+const UNLOCK_KEY = 'quietmoon.unlocked';
+const HIDDEN_KEY = 'quietmoon.hiddenAt';
+function markUnlocked() {
+  try { sessionStorage.setItem(UNLOCK_KEY, '1'); sessionStorage.removeItem(HIDDEN_KEY); } catch { /* ignore */ }
+}
+function clearUnlocked() {
+  try { sessionStorage.removeItem(UNLOCK_KEY); } catch { /* ignore */ }
+}
+function stillUnlocked() {
+  try {
+    if (sessionStorage.getItem(UNLOCK_KEY) !== '1') return false;
+    // If the page was reloaded after a long time in the background, ask again.
+    const hiddenAt = Number(sessionStorage.getItem(HIDDEN_KEY) || 0);
+    return !hiddenAt || Date.now() - hiddenAt <= RELOCK_AFTER_MS;
+  } catch { return false; }
+}
 const EXPORT_APP_ID = 'cycle-tracker-pwa';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -222,6 +239,7 @@ function renderToday() {
     $('#stat-next').textContent = status.daysLate > 0 ? `Due ${fmtShort(status.nextStart)}` : fmtShort(status.nextStart);
     $('#stat-fertile').textContent = fmtRange(status.fertileStart, status.fertileEnd);
     $('#stat-ovulation').textContent = fmtShort(status.ovulation);
+    state.goto = { period: [status.nextStart, status.nextStart], fertile: [status.fertileStart, status.fertileEnd], ovulation: [status.ovulation, status.ovulation], ring: [t, t] };
 
     periodBtn.hidden = status.inPeriod;
     endBtn.hidden = !status.inPeriod;
@@ -286,7 +304,7 @@ function renderCalendar() {
       if (mk.ovulation) cls.push('ovulation');
       else if (mk.fertile) cls.push('fertile');
     }
-    const hasSymptoms = !!(e && ((e.symptoms && e.symptoms.length) || (e.note && e.note.trim())));
+    const hasSymptoms = !!(e && e.symptoms && e.symptoms.length);
     const hasMood = !!(e && e.mood);
     const labels = [fmtLong(d)];
     if (cls.includes('period')) labels.push(`period, ${e && PERIOD_FLOWS.has(e.flow) ? e.flow : 'medium'} flow`);
@@ -294,7 +312,8 @@ function renderCalendar() {
     if (cls.includes('predicted')) labels.push('predicted period');
     if (cls.includes('ovulation')) labels.push('estimated ovulation');
     if (cls.includes('fertile')) labels.push('fertile window');
-    if (hasSymptoms) labels.push('symptoms or notes logged');
+    if (hasSymptoms) labels.push('symptoms logged');
+    if (e && e.note && e.note.trim()) labels.push('has a note');
     if (hasMood) labels.push('mood logged');
     const dots = hasSymptoms || hasMood
       ? `<span class="dots" aria-hidden="true">${hasSymptoms ? '<span class="dot dot-symptom"></span>' : ''}${hasMood ? '<span class="dot dot-mood"></span>' : ''}</span>`
@@ -428,24 +447,81 @@ function openCycle(i) {
   html += `<section class="csec"><h3 class="csec-h"><i class="kdot dot-symptom"></i>Symptoms</h3>${tally(count('symptoms'), SYMPTOMS, 't-symptom')}</section>`;
   html += `<section class="csec"><h3 class="csec-h"><i class="kdot dot-mood"></i>Mood</h3>${tally(count('mood'), MOODS, 't-mood')}</section>`;
 
-  const notes = days.filter(({ e }) => e.note && e.note.trim());
-  if (notes.length) {
-    html += `<section class="csec"><h3 class="csec-h">Notes</h3><ul class="cnotes">${notes.map(({ d, e }) => `<li><span class="cnote-d">${esc(fmtShort(d))}</span>${esc(e.note.trim())}</li>`).join('')}</ul></section>`;
-  }
+  // Notes are shown under each day in the day-by-day list below.
 
   // Every logged day; tap to open that day's log.
   html += `<section class="csec"><h3 class="csec-h">Day by day</h3><ol class="cdays">${days.map(({ d, e }) => {
-    const bits = [];
-    if (e.symptoms.length) bits.push(e.symptoms.map((s) => labelOf(SYMPTOMS, s)).join(', '));
-    if (e.mood) bits.push(labelOf(MOODS, e.mood));
-    if (e.note && e.note.trim()) { const n = e.note.trim(); bits.push(`“${n.length > 40 ? `${n.slice(0, 40)}…` : n}”`); }
-    const flow = e.flow !== 'none' ? `<span class="cflow f-${e.flow}">${esc(labelOf(FLOWS.map((f) => [f.id, f.label]), e.flow))}</span>` : '';
-    return `<li><button type="button" class="cday" data-day="${fromDay(d)}"><span class="cday-d"><b>Day ${d - p.start + 1}</b>${esc(fmt(d, { weekday: 'short', day: 'numeric', month: 'short' }))}</span><span class="cday-x">${flow}<span class="cday-t">${esc(bits.join(' · '))}</span></span></button></li>`;
+    // Top line: flow, symptoms (purple) and mood (yellow) as tags. Note underneath.
+    const tags = [];
+    if (e.flow !== 'none') tags.push(`<span class="cflow f-${e.flow}">${esc(labelOf(FLOWS.map((f) => [f.id, f.label]), e.flow))}</span>`);
+    for (const s of e.symptoms) tags.push(`<span class="ctag ctag-symptom">${esc(labelOf(SYMPTOMS, s))}</span>`);
+    if (e.mood) tags.push(`<span class="ctag ctag-mood">${esc(labelOf(MOODS, e.mood))}</span>`);
+    const note = e.note && e.note.trim() ? `<span class="cday-note">${esc(e.note.trim())}</span>` : '';
+    return `<li><button type="button" class="cday" data-day="${fromDay(d)}"><span class="cday-d"><b>Day ${d - p.start + 1}</b>${esc(fmt(d, { weekday: 'short', day: 'numeric', month: 'short' }))}</span><span class="cday-body">${tags.length ? `<span class="cday-x">${tags.join('')}</span>` : ''}${note}</span></button></li>`;
   }).join('') || '<li class="cempty">No days logged.</li>'}</ol></section>`;
 
   $('#cycle-body').innerHTML = html;
   openSheet($('#cycle-sheet'));
   $('#cycle-sheet').scrollTop = 0;
+}
+
+/* ---------- Insights charts (plain SVG; colours come from CSS classes) ---------- */
+
+const MONTH = (d) => fmt(d, { month: 'short' });
+const pct = (n) => `${Math.round(n * 100)}%`;
+
+function chartShell(svg, summary, readoutDefault, tableHead, tableRows) {
+  return `<p class="chart-summary">${summary}</p>
+    <div class="chart-wrap">${svg}</div>
+    <p class="chart-readout" id="chart-readout" aria-live="polite">${esc(readoutDefault)}</p>
+    <details class="chart-table"><summary>Show as a list</summary>
+      <table><thead><tr>${tableHead.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+      <tbody>${tableRows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+    </details>`;
+}
+
+// 1. Cycle length over time: line + dots, dashed average line.
+function cycleChart() {
+  const { stats, periods } = state.derived;
+  const cyc = stats.cycles.slice(-12);
+  if (cyc.length < 2) return '<p class="cempty">Log at least 3 periods to see how your cycle length changes.</p>';
+  const W = 340, H = 210, L = 30, R = 40, T = 18, B = 30;
+  const vals = cyc.map((c) => c.length);
+  const lo = Math.min(20, Math.min(...vals) - 2), hi = Math.max(36, Math.max(...vals) + 2);
+  const x = (i) => L + (cyc.length === 1 ? 0 : (i * (W - L - R)) / (cyc.length - 1));
+  const y = (v) => T + ((hi - v) * (H - T - B)) / (hi - lo);
+  const avg = stats.rawAvgCycle || stats.avgCycle;
+  const ticks = []; for (let v = Math.ceil(lo / 5) * 5; v <= hi; v += 5) ticks.push(v);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cycle length for your last ${cyc.length} cycles, average ${avg.toFixed(1)} days">`;
+  svg += ticks.map((v) => `<line class="ch-grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="ch-txt" x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${v}</text>`).join('');
+  svg += `<line class="ch-avg" x1="${L}" x2="${W - R}" y1="${y(avg)}" y2="${y(avg)}"/><text class="ch-avg-txt" x="${W - R + 6}" y="${y(avg) - 2}" text-anchor="start">avg</text><text class="ch-avg-txt" x="${W - R + 6}" y="${y(avg) + 10}" text-anchor="start">${avg.toFixed(1)}</text>`;
+  svg += `<polyline class="ch-line" points="${cyc.map((c, i) => `${x(i)},${y(c.length)}`).join(' ')}"/>`;
+  cyc.forEach((c, i) => {
+    const edge = c.length === minV || c.length === maxV;
+    svg += `<circle class="ch-dot${edge ? ' ch-dot-edge' : ''}" cx="${x(i)}" cy="${y(c.length)}" r="5"/>`;
+    if (edge && (i === vals.indexOf(c.length))) svg += `<text class="ch-lab" x="${x(i)}" y="${y(c.length) + (c.length === maxV ? -10 : 18)}" text-anchor="middle">${c.length}</text>`;
+    if (i % 2 === 0 || i === cyc.length - 1) svg += `<text class="ch-txt" x="${x(i)}" y="${H - 10}" text-anchor="middle">${MONTH(c.start)}</text>`;
+    svg += `<rect class="ch-hit" x="${x(i) - 14}" y="${T}" width="28" height="${H - T - B}" data-read="${esc(`${fmtRange(c.start, c.start + c.length - 1)}: ${c.length}-day cycle`)}"/>`;
+  });
+  svg += '</svg>';
+  const near = vals.filter((v) => Math.abs(v - avg) <= 2).length;
+  const summary = `Your last ${cyc.length} cycles averaged <b>${avg.toFixed(1)} days</b>. Shortest ${minV}, longest ${maxV}. ${near} of ${cyc.length} were within 2 days of your average${near / cyc.length >= 0.7 ? ', so your cycle is fairly regular' : ''}.`;
+  return chartShell(svg, summary, 'Tap a point to see that cycle.', ['Cycle started', 'Length'],
+    cyc.map((c) => [fmt(c.start, { day: 'numeric', month: 'short', year: 'numeric' }), `${c.length} days`]).reverse());
+}
+
+const CHARTS = {
+  cycle: { title: 'Cycle length', render: cycleChart },
+};
+
+function openChart(kind) {
+  const c = CHARTS[kind];
+  if (!c) return;
+  $('#chart-title').textContent = c.title;
+  $('#chart-body').innerHTML = c.render();
+  openSheet($('#chart-sheet'));
+  $('#chart-sheet').scrollTop = 0;
 }
 
 function applyTheme() {
@@ -642,9 +718,10 @@ function updateDots() {
 function showLock() {
   if (!state.pin) return;
   state.locked = true;
+  clearUnlocked();
   lockState.digits = '';
   updateDots();
-  $('#lock-msg').textContent = 'Your data is locked on this device.';
+  $('#lock-msg').textContent = 'Enter your PIN to unlock';
   $('#lock').hidden = false;
   $('#app').setAttribute('aria-hidden', 'true');
   $('#app').inert = true;
@@ -654,6 +731,7 @@ function showLock() {
 
 function hideLock() {
   state.locked = false;
+  markUnlocked();
   $('#lock').hidden = true;
   $('#app').removeAttribute('aria-hidden');
   $('#app').inert = false;
@@ -718,6 +796,7 @@ async function savePin(ev) {
   const pin = { salt, hash: await hashPin(a, salt) };
   await state.store.setKV('pin', pin);
   state.pin = pin;
+  markUnlocked();
   $('#pin-sheet').close('save');
   renderSettings();
   toast('PIN saved');
@@ -823,6 +902,14 @@ function setupEvents() {
     if (b) showView(b.dataset.view);
   });
   for (const b of $$('[data-open-settings]')) b.addEventListener('click', () => showView('settings'));
+  for (const b of $$('[data-chart]')) b.addEventListener('click', () => openChart(b.dataset.chart));
+  $('#chart-body').addEventListener('click', (ev) => {
+    const hit = ev.target.closest('[data-read]');
+    if (!hit) return;
+    for (const h of $$('#chart-body .ch-hit.on')) h.classList.remove('on');
+    hit.classList.add('on');
+    $('#chart-readout').textContent = hit.dataset.read;
+  });
   $('#history-list').addEventListener('click', (ev) => {
     const b = ev.target.closest('[data-cycle]');
     if (b) openCycle(Number(b.dataset.cycle));
@@ -882,6 +969,35 @@ function setupEvents() {
   $('#cal-prev').addEventListener('click', () => shiftMonth(-1));
   $('#cal-next').addEventListener('click', () => shiftMonth(1));
   $('#cal-today').addEventListener('click', () => { state.calMonth = null; renderCalendar(); });
+
+  // Today tiles and ring -> open the calendar on that date and highlight it.
+  const goCalendar = (key) => {
+    const range = state.goto && state.goto[key];
+    if (!range) return;
+    const dt = dateFromDay(range[0]);
+    state.calMonth = { y: dt.getUTCFullYear(), m: dt.getUTCMonth() };
+    showView('calendar');
+    renderCalendar();
+    for (let d = range[0]; d <= range[1]; d++) {
+      const cell = $(`[data-date="${fromDay(d)}"]`);
+      if (cell) cell.classList.add('pulse');
+    }
+  };
+  $('#go-period').addEventListener('click', () => goCalendar('period'));
+  $('#go-fertile').addEventListener('click', () => goCalendar('fertile'));
+  $('#go-ovulation').addEventListener('click', () => goCalendar('ovulation'));
+  $('#ring-go').addEventListener('click', () => goCalendar('ring'));
+  $('#ring-go').addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); goCalendar('ring'); } });
+
+  // Calendar legend: tap a heading to explain it.
+  $('.legend').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.legend-q');
+    if (!b) return;
+    const info = document.getElementById(b.getAttribute('aria-controls'));
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(open));
+    info.hidden = !open;
+  });
   // Swipe between months
   let touchX = null;
   $('#cal-grid').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
@@ -971,10 +1087,12 @@ function setupEvents() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       state.hiddenAt = Date.now();
+      try { sessionStorage.setItem(HIDDEN_KEY, String(state.hiddenAt)); } catch { /* ignore */ }
       if (state.pin) $('#privacy-cover').hidden = false;
     } else {
       $('#privacy-cover').hidden = true;
       if (state.pin && !state.locked && Date.now() - state.hiddenAt > RELOCK_AFTER_MS) showLock();
+      try { sessionStorage.removeItem(HIDDEN_KEY); } catch { /* ignore */ }
       // The date may have changed while the app was in the background.
       render();
     }
@@ -990,7 +1108,7 @@ function registerSW() {
 async function init() {
   state.store = await openStore();
   await loadAll();
-  if (state.pin) showLock();
+  if (state.pin && !stillUnlocked()) showLock();
   buildLogControls();
   setupSheetClose();
   setupLock();
