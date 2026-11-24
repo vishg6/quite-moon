@@ -2,7 +2,18 @@
 
 *Author: Vishal Gangaram*
 
-## Not yet released (v1.6.0)
+## v1.6.1
+
+- **Send test notification** button (Settings → Reminders) shows one
+  notification immediately, to check notifications work on your phone.
+- **Notification check**: shows the browser, whether the app was opened as the
+  installed app, whether notifications are allowed, whether background
+  reminders are supported, and whether the daily check is scheduled.
+- The notification time can be chosen while phone notifications are off.
+- If phone notifications can't turn on, the reason stays visible under the
+  switch (e.g. install first, or notifications blocked) instead of vanishing.
+
+## v1.6.0
 
 ### Reminders (built, not yet pushed)
 - **Reminder cards on Today** when you open the app, each with a quick action

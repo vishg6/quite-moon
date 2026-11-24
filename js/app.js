@@ -584,10 +584,16 @@ const pushSupported = () => 'serviceWorker' in navigator && 'Notification' in wi
 async function enablePush() {
   try {
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { toast('Notifications weren’t allowed'); return false; }
+    if (perm !== 'granted') {
+      state.pushMsg = 'Notifications are blocked for Quiet Moon. Allow them in your phone’s Settings → Apps → Quiet Moon → Notifications, then try again.';
+      toast('Notifications weren’t allowed'); return false;
+    }
     const reg = await navigator.serviceWorker.ready;
     const ps = await navigator.permissions.query({ name: 'periodic-background-sync' });
-    if (ps.state !== 'granted') { toast('Install Quiet Moon to your home screen first'); return false; }
+    if (ps.state !== 'granted') {
+      state.pushMsg = 'Install Quiet Moon to your home screen first (Chrome menu ⋮ → Install app), then open it from there and turn this on.';
+      toast('Install Quiet Moon to your home screen first'); return false;
+    }
     await reg.periodicSync.register('qm-reminders', { minInterval: 12 * 60 * 60 * 1000 });
     const r = state.settings.reminders;
     reg.showNotification(r.discreet ? 'Quiet Moon reminder' : 'Quiet Moon', {
@@ -595,9 +601,58 @@ async function enablePush() {
     });
     return true;
   } catch {
+    state.pushMsg = 'Phone notifications aren’t available in this browser. Use Chrome on Android with the app installed.';
     toast('Phone notifications aren’t available here');
     return false;
   }
+}
+
+/** Send one notification right now, so you can check notifications work on this phone. */
+async function sendTestNotification() {
+  const status = $('#rem-test-status');
+  const say = (text, warn = false) => { status.textContent = text; status.classList.toggle('rem-warn', warn); };
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) { say('This browser can’t show notifications.', true); return; }
+    let perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm !== 'granted') { say('Notifications are blocked for Quiet Moon. Allow them in your phone’s Settings → Apps → Quiet Moon → Notifications.', true); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const r = state.settings.reminders;
+    await reg.showNotification(r.discreet ? 'Quiet Moon reminder' : 'Quiet Moon', {
+      body: r.discreet ? 'Test notification. Tap to open the app.' : 'Test: your period may start in 2 days.',
+      icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'qm-test',
+    });
+    say('Sent. If nothing appeared, check this app’s notification settings on your phone.');
+  } catch (e) {
+    say(`Couldn’t send: ${e && e.message ? e.message : e}`, true);
+  }
+  renderNotificationCheck();
+}
+
+/** Show what this phone/browser supports, to explain why reminders may not arrive. */
+async function renderNotificationCheck() {
+  const list = $('#rem-diag-list');
+  if (!list) return;
+  const row = (label, good, text) => `<li><span class="diag-dot ${good ? 'ok' : 'no'}" aria-hidden="true"></span><span class="diag-k">${label}</span><span class="diag-v">${esc(text)}</span></li>`;
+  const ua = navigator.userAgent;
+  const browser = /SamsungBrowser/i.test(ua) ? 'Samsung Internet' : /Edg\//i.test(ua) ? 'Edge' : /Firefox/i.test(ua) ? 'Firefox'
+    : /CriOS|Chrome/i.test(ua) ? 'Chrome' : /Safari/i.test(ua) ? 'Safari' : 'Other';
+  const installed = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+  const bgSupported = 'PeriodicSyncManager' in window;
+  let bgPerm = 'unknown';
+  if (bgSupported) {
+    try { bgPerm = (await navigator.permissions.query({ name: 'periodic-background-sync' })).state; } catch { bgPerm = 'unknown'; }
+  }
+  let scheduled = false;
+  try { const reg = await navigator.serviceWorker.ready; scheduled = !!(reg.periodicSync && (await reg.periodicSync.getTags()).includes('qm-reminders')); } catch { /* ignore */ }
+  list.innerHTML = [
+    row('Browser', true, browser),
+    row('Opened as installed app', installed, installed ? 'Yes' : 'No — open it from the home-screen icon'),
+    row('Notifications allowed', perm === 'granted', { granted: 'Yes', denied: 'Blocked', default: 'Not asked yet', unsupported: 'Not supported' }[perm] || perm),
+    row('Background reminders', bgSupported && bgPerm === 'granted', !bgSupported ? 'Not supported by this browser' : bgPerm === 'granted' ? 'Supported' : 'Needs the installed app'),
+    row('Daily check scheduled', scheduled, scheduled ? 'Yes' : 'No'),
+  ].join('');
 }
 
 async function disablePush() {
@@ -608,6 +663,7 @@ async function disablePush() {
 }
 
 function renderReminderSettings() {
+  renderNotificationCheck();
   const r = state.settings.reminders;
   $('#rem-on').checked = r.on;
   $('#rem-detail').hidden = !r.on;
@@ -624,7 +680,11 @@ function renderReminderSettings() {
   $('#rem-push-unsupported').hidden = supported;
   $('#rem-push').checked = r.push;
   $('#rem-discreet').checked = r.discreet;
-  $('[data-rem-opt="time"]').disabled = !r.push;
+  const hourText = (h) => `${(h % 12) || 12}:00 ${h < 12 ? 'am' : 'pm'}`;
+  const status = $('#rem-push-status');
+  if (r.push) { state.pushMsg = ''; status.textContent = `On. About once a day, around ${hourText(r.time)}.`; }
+  else status.textContent = state.pushMsg || 'Off. For Android with the app installed. About once a day.';
+  status.classList.toggle('rem-warn', !r.push && !!state.pushMsg);
 }
 
 function renderSettings() {
@@ -1199,6 +1259,7 @@ function setupEvents() {
     state.settings.reminders.discreet = ev.target.checked;
     await saveSettings(); render();
   });
+  $('#rem-test').addEventListener('click', sendTestNotification);
   $('#rem-push').addEventListener('change', async (ev) => {
     const want = ev.target.checked;
     state.settings.reminders.push = want ? await enablePush() : (await disablePush(), false);

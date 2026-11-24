@@ -281,6 +281,15 @@
           <div class="row-text"><span class="row-k" id="rem-discreet-title">Discreet text</span><span class="row-sub">Notifications only say “Quiet Moon reminder”</span></div>
           <input type="checkbox" class="switch" role="switch" id="rem-discreet" aria-labelledby="rem-discreet-title">
         </div>
+        <div class="row">
+          <div class="row-text"><span class="row-k">Test notification</span><span class="row-sub" id="rem-test-status">Sends one now so you can check it works</span></div>
+          <button type="button" class="btn btn-soft" id="rem-test">Send test</button>
+        </div>
+        <details class="rem-diag">
+          <summary>Notification check</summary>
+          <ul id="rem-diag-list"></ul>
+          <p class="rem-diag-note">“Background reminders” is what lets reminders arrive while the app is closed. It works in Chrome on Android with the app installed. Other browsers may not support it yet.</p>
+        </details>
         <p class="rem-note" id="rem-push-unsupported" hidden>Phone notifications aren’t available on this device. On iPhone, web apps can’t send notifications without a server, and Quiet Moon never uses one. Your reminders still appear on Today when you open the app.</p>
       </div>
 
@@ -320,7 +329,7 @@
         <h2 class="about-h">Private by design</h2>
         <p>No account, no server, no analytics. Your entries are stored only on this device (<span id="storage-kind">…</span>) and the app is technically blocked from sending data anywhere. Export a backup regularly — if you delete the app or clear browser data, your entries are gone.</p>
         <p><strong>Not medical advice.</strong> Predictions are estimates based on averages. They are not suitable for contraception or diagnosis. Talk to a clinician about anything that worries you.</p>
-        <p class="version">Quiet Moon v1.6.0</p>
+        <p class="version">Quiet Moon v1.6.1</p>
       </div>
     </section>
   </main>

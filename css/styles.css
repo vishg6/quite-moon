@@ -410,6 +410,16 @@ button.stat:active { transform: scale(.97); }
   background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 28px 6px 10px; min-height: 36px;
 }
 .rem-select:disabled { opacity: .5; }
+.row-sub.rem-warn { color: var(--danger); }
+.rem-diag { padding: 4px 0 14px; border-top: 1px solid var(--line); }
+.rem-diag summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--rose-ink); padding: 10px 0 6px; }
+.rem-diag ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rem-diag li { display: grid; grid-template-columns: auto max-content 1fr; align-items: center; gap: 8px; font-size: 13px; }
+.diag-dot { width: 10px; height: 10px; border-radius: 50%; }
+.diag-dot.ok { background: var(--teal); } .diag-dot.no { background: var(--danger); }
+.diag-k { color: var(--ink); font-weight: 500; white-space: nowrap; }
+.diag-v { color: var(--muted); text-align: right; }
+.rem-diag-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .rem-note { margin: 0; padding: 14px 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
 
 /* ---------- insights charts ---------- */
