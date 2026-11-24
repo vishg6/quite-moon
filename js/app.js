@@ -11,6 +11,9 @@ import {
   toDay, fromDay, todayStr, isValidDateStr, findPeriods, computeStats,
   currentStatus, predictionMarkers, PHASES, PERIOD_FLOWS,
 } from './cycle.js';
+import {
+  REMINDER_DEFAULTS, sanitizeReminders, planReminders, dueCards, pushSchedule,
+} from './reminders.js';
 
 const FLOWS = [
   { id: 'none', label: 'None' },
@@ -31,7 +34,7 @@ const MOODS = [
 const SYMPTOM_IDS = new Set(SYMPTOMS.map(([id]) => id));
 const MOOD_IDS = new Set(MOODS.map(([id]) => id));
 const FLOW_IDS = new Set(FLOWS.map((f) => f.id));
-const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5, theme: 'auto' };
+const DEFAULT_SETTINGS = { cycleLength: 28, periodLength: 5, theme: 'auto', reminders: REMINDER_DEFAULTS };
 const THEMES = new Set(['auto', 'light', 'dark']);
 const THEME_BG = { light: '#FAF8F6', dark: '#161312' };
 const RELOCK_AFTER_MS = 60 * 1000;
@@ -120,17 +123,20 @@ function sanitizeSettings(raw) {
   if (raw && Number.isInteger(raw.cycleLength) && raw.cycleLength >= 15 && raw.cycleLength <= 60) s.cycleLength = raw.cycleLength;
   if (raw && Number.isInteger(raw.periodLength) && raw.periodLength >= 1 && raw.periodLength <= 15) s.periodLength = raw.periodLength;
   if (raw && THEMES.has(raw.theme)) s.theme = raw.theme;
+  s.reminders = sanitizeReminders(raw && raw.reminders);
   return s;
 }
 
 /* ---------- data ---------- */
 
 async function loadAll() {
-  const [entries, settings, pin] = await Promise.all([
+  const [entries, settings, pin, dismissed] = await Promise.all([
     state.store.getAllEntries(),
     state.store.getKV('settings'),
     state.store.getKV('pin'),
+    state.store.getKV('remindersDismissed'),
   ]);
+  state.dismissed = dismissed && typeof dismissed === 'object' ? dismissed : {};
   state.entries = new Map(entries.map((e) => [e.date, e]));
   state.settings = sanitizeSettings(settings);
   state.pin = pin && pin.salt && pin.hash ? pin : null;
@@ -156,13 +162,14 @@ async function saveEntry(e) {
 }
 
 async function saveSettings() {
-  await state.store.setKV('settings', { ...state.settings });
+  await state.store.setKV('settings', JSON.parse(JSON.stringify(state.settings)));
 }
 
 /* ---------- rendering ---------- */
 
 function render() {
   derive();
+  renderReminders();
   renderToday();
   renderCalendar();
   renderHistory();
@@ -542,8 +549,87 @@ function applyTheme() {
   for (const b of $$('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === t));
 }
 
+/* ---------- reminders ---------- */
+
+const REMINDER_LOOK = {
+  upcoming: { cls: 'r-period', label: 'View', goto: 'period' },
+  due: { cls: 'r-period', label: 'Log period' },
+  late: { cls: 'r-period', label: 'Log period' },
+  fertile: { cls: 'r-fertile', label: 'View', goto: 'fertile' },
+  ovulation: { cls: 'r-fertile', label: 'View', goto: 'ovulation' },
+  pms: { cls: 'r-pms', label: 'Log symptoms' },
+  log: { cls: 'r-log', label: 'Log now' },
+};
+
+function renderReminders() {
+  const { periods, status, today: t } = state.derived;
+  const settings = state.settings.reminders;
+  state.plan = planReminders({ periods, status, entries: state.entries, today: t, settings });
+  const cards = dueCards(state.plan, t, state.entries, state.dismissed || {});
+  $('#reminders').innerHTML = cards.map((c) => {
+    const look = REMINDER_LOOK[c.type];
+    return `<div class="rcard ${look.cls}" data-key="${esc(c.key)}">
+      <span class="rcard-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2ZM10 20a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <p class="rcard-text">${esc(c.text)}</p>
+      <button type="button" class="rcard-act" data-ract="${c.type}">${look.label}</button>
+      <button type="button" class="rcard-x" data-dismiss="${esc(c.key)}" aria-label="Dismiss reminder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+    </div>`;
+  }).join('');
+  // Keep the phone-notification schedule (read by the service worker) up to date.
+  state.store.setKV('reminderSchedule', pushSchedule(state.plan, settings)).catch(() => {});
+}
+
+const pushSupported = () => 'serviceWorker' in navigator && 'Notification' in window && 'PeriodicSyncManager' in window;
+
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('Notifications weren’t allowed'); return false; }
+    const reg = await navigator.serviceWorker.ready;
+    const ps = await navigator.permissions.query({ name: 'periodic-background-sync' });
+    if (ps.state !== 'granted') { toast('Install Quiet Moon to your home screen first'); return false; }
+    await reg.periodicSync.register('qm-reminders', { minInterval: 12 * 60 * 60 * 1000 });
+    const r = state.settings.reminders;
+    reg.showNotification(r.discreet ? 'Quiet Moon reminder' : 'Quiet Moon', {
+      body: 'Reminders are on. They arrive about once a day.', icon: 'icons/icon-192.png', tag: 'qm-test',
+    });
+    return true;
+  } catch {
+    toast('Phone notifications aren’t available here');
+    return false;
+  }
+}
+
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (reg.periodicSync) await reg.periodicSync.unregister('qm-reminders');
+  } catch { /* ignore */ }
+}
+
+function renderReminderSettings() {
+  const r = state.settings.reminders;
+  $('#rem-on').checked = r.on;
+  $('#rem-detail').hidden = !r.on;
+  $('#rem-phone').hidden = !r.on;
+  for (const el of $$('[data-rem]')) el.checked = r[el.dataset.rem].on;
+  for (const el of $$('[data-rem-opt]')) {
+    const [a, b] = el.dataset.remOpt.split('.');
+    el.value = String(b ? r[a][b] : r[a]);
+    if (b) el.disabled = !r[a].on;
+  }
+  const supported = pushSupported();
+  $('#rem-push-row').hidden = !supported;
+  $('#rem-discreet-row').hidden = !supported;
+  $('#rem-push-unsupported').hidden = supported;
+  $('#rem-push').checked = r.push;
+  $('#rem-discreet').checked = r.discreet;
+  $('[data-rem-opt="time"]').disabled = !r.push;
+}
+
 function renderSettings() {
   applyTheme();
+  renderReminderSettings();
   $('#set-cycle').textContent = state.settings.cycleLength;
   $('#set-period').textContent = state.settings.periodLength;
   $('#pin-status').textContent = state.pin ? 'On — asked when the app opens' : 'Off';
@@ -665,7 +751,9 @@ async function submitPeriod() {
     const ds = fromDay(d);
     const existing = state.entries.get(ds);
     if (existing && PERIOD_FLOWS.has(existing.flow)) continue;
-    await saveEntry({ ...(existing || { date: ds, symptoms: [], mood: '', note: '' }), date: ds, flow: 'medium' });
+    const entry = { ...(existing || { date: ds, symptoms: [], mood: '', note: '' }), date: ds, flow: 'medium' };
+    if (d > s) entry.auto = true; else delete entry.auto; // days after today are a guess until you log them
+    await saveEntry(entry);
   }
   render();
   toast(`Period logged from ${fmtShort(s)}`);
@@ -886,7 +974,8 @@ async function deleteAllData() {
   await state.store.clearAll();
   try { localStorage.removeItem('cycle.entries'); localStorage.removeItem('cycle.kv'); } catch { /* ignore */ }
   state.entries = new Map();
-  state.settings = { ...DEFAULT_SETTINGS };
+  state.settings = sanitizeSettings(null);
+  state.dismissed = {};
   state.pin = null;
   hideLock();
   render();
@@ -1068,6 +1157,52 @@ function setupEvents() {
     state.settings.theme = b.dataset.themeChoice;
     await saveSettings();
     applyTheme();
+  });
+
+  // Reminder cards on Today
+  $('#reminders').addEventListener('click', async (ev) => {
+    const x = ev.target.closest('[data-dismiss]');
+    if (x) {
+      const t = today();
+      state.dismissed = Object.fromEntries(Object.entries(state.dismissed || {}).filter(([, d]) => t - d < 60));
+      state.dismissed[x.dataset.dismiss] = t;
+      await state.store.setKV('remindersDismissed', state.dismissed);
+      renderReminders();
+      return;
+    }
+    const a = ev.target.closest('[data-ract]');
+    if (!a) return;
+    const type = a.dataset.ract;
+    const look = REMINDER_LOOK[type];
+    if (look.goto) goCalendar(look.goto);
+    else if (type === 'due' || type === 'late') openPeriodSheet();
+    else openLog(todayStr(), type === 'pms' ? 'symptoms' : 'flow');
+  });
+
+  // Reminder settings
+  $('#rem-on').addEventListener('change', async (ev) => {
+    state.settings.reminders.on = ev.target.checked;
+    if (!ev.target.checked && state.settings.reminders.push) { state.settings.reminders.push = false; await disablePush(); }
+    await saveSettings(); render();
+  });
+  for (const el of $$('[data-rem]')) el.addEventListener('change', async () => {
+    state.settings.reminders[el.dataset.rem].on = el.checked;
+    await saveSettings(); render();
+  });
+  for (const el of $$('[data-rem-opt]')) el.addEventListener('change', async () => {
+    const [a, b] = el.dataset.remOpt.split('.');
+    const v = Number(el.value);
+    if (b) state.settings.reminders[a][b] = v; else state.settings.reminders[a] = v;
+    await saveSettings(); render();
+  });
+  $('#rem-discreet').addEventListener('change', async (ev) => {
+    state.settings.reminders.discreet = ev.target.checked;
+    await saveSettings(); render();
+  });
+  $('#rem-push').addEventListener('change', async (ev) => {
+    const want = ev.target.checked;
+    state.settings.reminders.push = want ? await enablePush() : (await disablePush(), false);
+    await saveSettings(); render();
   });
 
   $('#export-btn').addEventListener('click', exportData);

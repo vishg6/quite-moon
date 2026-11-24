@@ -2,7 +2,29 @@
 
 *Author: Vishal Gangaram*
 
-## Not yet released (v1.5.0)
+## Not yet released (v1.6.0)
+
+### Reminders (built, not yet pushed)
+- **Reminder cards on Today** when you open the app, each with a quick action
+  and a dismiss button:
+  - Period coming up (1, 2, 3 or 5 days before; counts down each day)
+  - Period due today
+  - Period late (after 1, 3 or 7 days; stays until a period is logged)
+  - Fertile window (on the day, or the day before)
+  - Ovulation day (off by default)
+  - PMS heads-up, using the symptom you usually log before your period (off by default)
+  - Daily log reminder during a period, at a time you choose; skipped once
+    you've logged that day (days pre-filled by "Period started" don't count)
+- **Settings → Reminders:** master switch, a switch and timing option for each.
+- **Phone notifications (Android, installed app):** optional; the phone checks
+  about once a day and shows due reminders. Discreet text by default
+  ("Quiet Moon reminder"). Everything runs on the phone — no server, nothing
+  written to any calendar or account.
+- **iPhone:** phone notifications aren't possible for a private web app; the
+  app explains this and shows reminders on Today instead.
+- Off switches now look clearly off (neutral grey).
+
+## v1.5.0 (pushed)
 
 ### Done in the app (tested, not yet pushed)
 

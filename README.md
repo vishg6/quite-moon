@@ -46,6 +46,13 @@ no server and no analytics.
 - **Insights:** every period with its length and cycle length, plus averages.
   Tap a cycle to see its day-by-day flow chart, symptom and mood counts, notes,
   and every logged day (tap a day to open its log).
+- **Reminders:** period coming up, due, late, fertile window, ovulation, PMS
+  heads-up and a daily log reminder during your period, each with its own
+  switch and timing. They appear on Today when you open the app. On Android
+  (installed app) they can also arrive as phone notifications about once a day,
+  with discreet text by default. Everything runs on the phone; there is no
+  server. iPhone doesn't allow private web apps to send notifications, so there
+  reminders show on Today only.
 - **Settings** (gear button): default cycle and period length, Auto/Light/Dark
   appearance, PIN lock, backup and delete.
 - **Backup:** export to a `.json` file and import it again, choosing either
@@ -62,6 +69,7 @@ js/app.js              UI and app logic
 js/cycle.js            cycle maths (pure functions)
 js/db.js               on-device storage (IndexedDB, localStorage fallback)
 js/theme-boot.js       applies the Light/Dark choice before the page draws
+js/reminders.js        works out which reminders are due (on the phone)
 sw.js                  service worker (offline cache)
 manifest.webmanifest   install metadata
 icons/                 app icons, including apple-touch-icon

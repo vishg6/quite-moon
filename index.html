@@ -67,6 +67,8 @@
         </div>
       </header>
 
+      <div id="reminders" class="reminders" aria-live="polite"></div>
+
       <div class="hero card" id="hero" data-phase="none">
         <div class="ring-wrap" id="ring-go" role="button" tabindex="0" aria-label="Show this cycle in the calendar">
           <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
@@ -233,6 +235,55 @@
         </div>
       </div>
 
+      <h2 class="section-h">Reminders</h2>
+      <div class="card list">
+        <div class="row">
+          <div class="row-text"><span class="row-k" id="rem-title">Reminders</span><span class="row-sub">Shown on Today when you open the app</span></div>
+          <input type="checkbox" class="switch" role="switch" id="rem-on" aria-labelledby="rem-title">
+        </div>
+      </div>
+      <div class="card list" id="rem-detail">
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">Period coming up</span><span class="row-sub">Heads-up before it’s due</span><select class="rem-select" data-rem-opt="upcoming.days" aria-label="How many days before"><option value="1">1 day before</option><option value="2">2 days before</option><option value="3">3 days before</option><option value="5">5 days before</option></select></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="upcoming" aria-label="Period coming up">
+        </div>
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">Period due today</span><span class="row-sub">On the predicted start day</span></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="due" aria-label="Period due today">
+        </div>
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">Period late</span><span class="row-sub">If no period has been logged</span><select class="rem-select" data-rem-opt="late.days" aria-label="After how many days late"><option value="1">After 1 day</option><option value="3">After 3 days</option><option value="7">After 7 days</option></select></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="late" aria-label="Period late">
+        </div>
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">Fertile window</span><span class="row-sub">Estimated start</span><select class="rem-select" data-rem-opt="fertile.before" aria-label="When"><option value="0">On the day</option><option value="1">The day before</option></select></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="fertile" aria-label="Fertile window">
+        </div>
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">Ovulation day</span><span class="row-sub">Estimated day</span></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="ovulation" aria-label="Ovulation day">
+        </div>
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">PMS heads-up</span><span class="row-sub">Based on symptoms you usually log</span><select class="rem-select" data-rem-opt="pms.days" aria-label="How many days before"><option value="2">2 days before period</option><option value="3">3 days before period</option><option value="5">5 days before period</option></select></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="pms" aria-label="PMS heads-up">
+        </div>
+        <div class="row rem-row">
+          <div class="row-text"><span class="row-k">Log reminder during period</span><span class="row-sub">Skipped once you’ve logged that day</span><select class="rem-select" data-rem-opt="log.time" aria-label="Time"><option value="18">At 6:00 pm</option><option value="19">At 7:00 pm</option><option value="20">At 8:00 pm</option><option value="21">At 9:00 pm</option><option value="22">At 10:00 pm</option></select></div>
+          <input type="checkbox" class="switch" role="switch" data-rem="log" aria-label="Log reminder during period">
+        </div>
+      </div>
+      <div class="card list" id="rem-phone">
+        <div class="row" id="rem-push-row">
+          <div class="row-text"><span class="row-k" id="rem-push-title">Phone notifications</span><span class="row-sub" id="rem-push-status">Android, installed app. About once a day.</span><select class="rem-select" data-rem-opt="time" aria-label="Notification time"><option value="7">Around 7:00 am</option><option value="8">Around 8:00 am</option><option value="9">Around 9:00 am</option><option value="10">Around 10:00 am</option><option value="12">Around 12:00 pm</option><option value="17">Around 5:00 pm</option><option value="18">Around 6:00 pm</option><option value="19">Around 7:00 pm</option></select></div>
+          <input type="checkbox" class="switch" role="switch" id="rem-push" aria-labelledby="rem-push-title">
+        </div>
+        <div class="row" id="rem-discreet-row">
+          <div class="row-text"><span class="row-k" id="rem-discreet-title">Discreet text</span><span class="row-sub">Notifications only say “Quiet Moon reminder”</span></div>
+          <input type="checkbox" class="switch" role="switch" id="rem-discreet" aria-labelledby="rem-discreet-title">
+        </div>
+        <p class="rem-note" id="rem-push-unsupported" hidden>Phone notifications aren’t available on this device. On iPhone, web apps can’t send notifications without a server, and Quiet Moon never uses one. Your reminders still appear on Today when you open the app.</p>
+      </div>
+
       <h2 class="section-h">Privacy &amp; lock</h2>
       <div class="card list">
         <div class="row">
@@ -269,7 +320,7 @@
         <h2 class="about-h">Private by design</h2>
         <p>No account, no server, no analytics. Your entries are stored only on this device (<span id="storage-kind">…</span>) and the app is technically blocked from sending data anywhere. Export a backup regularly — if you delete the app or clear browser data, your entries are gone.</p>
         <p><strong>Not medical advice.</strong> Predictions are estimates based on averages. They are not suitable for contraception or diagnosis. Talk to a clinician about anything that worries you.</p>
-        <p class="version">Quiet Moon v1.5.0</p>
+        <p class="version">Quiet Moon v1.6.0</p>
       </div>
     </section>
   </main>
