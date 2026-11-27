@@ -5,7 +5,7 @@
  *
  * When you change any app file, bump CACHE_VERSION so phones pick up the update.
  */
-const CACHE_VERSION = 'cycle-v1.6.1';
+const CACHE_VERSION = 'cycle-v1.6.2';
 const APP_FILES = [
   './',
   './index.html',
@@ -23,6 +23,7 @@ const APP_FILES = [
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
+  './icons/badge-96.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -115,7 +116,7 @@ async function checkReminders() {
       const e = await idbGet(db, 'entries', it.date);
       if (e && !e.auto) { sent[it.key] = Date.now(); continue; } // already logged
     }
-    await self.registration.showNotification(it.title, { body: it.body, tag: it.key, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
+    await self.registration.showNotification(it.title, { body: it.body, tag: it.key, icon: 'icons/icon-192.png', badge: 'icons/badge-96.png' });
     sent[it.key] = Date.now();
   }
   // forget anything older than 60 days

@@ -597,7 +597,7 @@ async function enablePush() {
     await reg.periodicSync.register('qm-reminders', { minInterval: 12 * 60 * 60 * 1000 });
     const r = state.settings.reminders;
     reg.showNotification(r.discreet ? 'Quiet Moon reminder' : 'Quiet Moon', {
-      body: 'Reminders are on. They arrive about once a day.', icon: 'icons/icon-192.png', tag: 'qm-test',
+      body: 'Reminders are on. They arrive about once a day.', icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', tag: 'qm-test',
     });
     return true;
   } catch {
@@ -620,7 +620,7 @@ async function sendTestNotification() {
     const r = state.settings.reminders;
     await reg.showNotification(r.discreet ? 'Quiet Moon reminder' : 'Quiet Moon', {
       body: r.discreet ? 'Test notification. Tap to open the app.' : 'Test: your period may start in 2 days.',
-      icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'qm-test',
+      icon: 'icons/icon-192.png', badge: 'icons/badge-96.png', tag: 'qm-test',
     });
     say('Sent. If nothing appeared, check this app’s notification settings on your phone.');
   } catch (e) {

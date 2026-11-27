@@ -2,6 +2,11 @@
 
 *Author: Vishal Gangaram*
 
+## v1.6.2
+
+- Android status-bar notification icon now shows the white moon and droplet
+  instead of a plain square (Android draws only the shape of this small icon).
+
 ## v1.6.1
 
 - **Send test notification** button (Settings → Reminders) shows one
